@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCDQ-拧紧结果分析 (最终版)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<style>
+    *{box-sizing: border-box; font-family: "Microsoft YaHei", Arial; margin:0; padding:0;}
+    body{
+        margin:0; padding:10px; background:#f0f2f5; height:100vh;
+        display:flex; align-items:center; justify-content:center;
+    }
+    .main-box{
+        width:100%; max-width:1600px; height:95vh;
+        background:#fff; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.08);
+        display:flex; gap:18px; padding:18px; overflow:hidden;
+    }
+    .left-panel{
+        width:360px; display:flex; flex-direction:column; gap:14px;
+    }
+    .right-panel{
+        flex:1; display:flex; flex-direction:column; gap:14px; overflow-y:auto;
+    }
+    .title{
+        text-align:center; color:#1f2937; font-size:22px; font-weight:bold;
+        padding:8px 0; border-bottom:2px solid #e5e7eb;
+    }
+    .sub-title{
+        text-align:center; color:#6b7280; font-size:13px; margin:4px 0 8px;
+    }
+    .card{
+        background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:12px;
+    }
+    .card label{
+        font-weight:bold; font-size:14px; color:#374151; margin-bottom:6px; display:block;
+    }
+    .tip{font-size:12px; color:#6b7280; margin-top:4px; line-height:1.3;}
+    input,select,textarea{
+        width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:4px; font-size:14px;
+    }
+    textarea{resize:none; height:180px; line-height:1.4;}
+    .btn-group{
+        display:flex; gap:8px; margin-top:6px;
+    }
+    .btn-group button{
+        flex:1; padding:8px; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:bold;
+    }
+    .clear-btn{background:#ff4d4f; color:#fff;}
+    .calc-btn{
+        padding:12px; background:#165DFF; color:#fff; border:none;
+        border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer;
+    }
+
+    .result-section{
+        display:flex; gap:12px; flex-wrap:wrap;
+    }
+    .result-item{
+        flex:1; min-width:240px; padding:14px; border-radius:6px;
+        line-height:1.7; font-size:15px;
+    }
+    .result-main{background:#ecf5ff;}
+    .normal{background:#f0fff4; border:1px solid #c3f0d1;}
+    .abnormal{background:#fff0f0; border:1px solid #ffcccc;}
+    .distribute{background:#fefce8; border:1px solid #fde68a;}
+    .reason{
+        margin-top:5px; padding-left:6px; border-left:3px solid #ff6b6b;
+        font-size:12px; color:#c0392b;
+    }
+    .dist-reason{
+        margin-top:5px; padding-left:6px; border-left:3px solid #f59e0b;
+        font-size:12px; color:#92400e;
+    }
+    .red-text{
+        color:#ff0000;
+        font-weight:bold;
+    }
+    .overall-good{
+        background: #27ae60; color: white; padding:4px 8px; border-radius:4px; display:inline-block; font-weight:bold;
+    }
+    .overall-bad{
+        background: #e74c3c; color: white; padding:4px 8px; border-radius:4px; display:inline-block; font-weight:bold;
+    }
+
+    .table-section{
+        background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:12px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .table-toolbar{
+        display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+        flex-shrink: 0;
+    }
+    .fold-btn{
+        padding:4px 8px; background:#e5e7eb; border:none; border-radius:3px; cursor:pointer; font-size:12px;
+    }
+    .horizontal-table-box{
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid #e5e7eb;
+        background: white;
+        padding: 4px;
+        max-height: 400px;
+    }
+    .horizontal-table{
+        width:100%; border-collapse:collapse; font-size:11px;
+        margin-bottom:8px;
+    }
+    .horizontal-table th,.horizontal-table td{
+        border:1px solid #e5e7eb; padding:3px 4px; text-align:center;
+        min-width:38px;
+    }
+    .horizontal-table th{
+        background:#e6f7ff; font-weight:bold;
+    }
+    .horizontal-table .abnormal-row{
+        background:#fff1f0; color:#ff0000; font-weight:bold;
+    }
+
+    .chart-section{
+        background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:12px;
+    }
+    .chart-title{
+        font-size:15px; font-weight:bold; color:#1f2937; margin-bottom:8px; display:block;
+    }
+    .control-stats{
+        font-size:12px; margin-bottom:8px; display:flex; gap:15px; flex-wrap:wrap;
+    }
+    #chartControl{height:300px !important;}
+    #chartNormal{height:260px !important;}
+    canvas{width:100% !important;}
+</style>
+</head>
+<body>
+
+<div class="main-box">
+    <div class="left-panel">
+        <div class="title">VCDQ-拧紧结果分析 (最终版)</div>
+        <div class="sub-title">CPK/PPK/CMK | SPC 8大判异 | 自动分布检测</div>
+
+        <div class="card">
+            <label>计算类型</label>
+            <select id="type">
+                <option value="CPK">CPK (量产稳定过程)</option>
+                <option value="PPK">PPK (试产初始过程)</option>
+                <option value="CMK">CMK (设备能力验证)</option>
+            </select>
+            <div class="tip">CMK推荐50个数据，CPK/PPK建议≥25个数据</div>
+        </div>
+
+        <div class="card">
+            <label>上公差 USL</label>
+            <input type="number" id="usl" placeholder="例如 10.2" step="0.01">
+            <div class="tip">必须大于下公差</div>
+        </div>
+
+        <div class="card">
+            <label>下公差 LSL</label>
+            <input type="number" id="lsl" placeholder="例如 9.8" step="0.01">
+            <div class="tip">必须小于上公差</div>
+        </div>
+
+        <div class="card">
+            <label>目标值 Target</label>
+            <input type="number" id="target" placeholder="例如 10.0" step="0.01">
+            <div class="tip">用于计算对中度 (均值-目标)/公差范围</div>
+        </div>
+
+        <div class="card">
+            <label>拧紧扭矩数据</label>
+            <textarea id="data" placeholder="请输入扭矩数据，可一行一个、空格或逗号分隔&#10;例如：10.01 10.02 9.98 ..."></textarea>
+            <div class="btn-group">
+                <button class="clear-btn" onclick="clearData()">🗑️ 清除数据</button>
+            </div>
+            <div class="tip">样本≥10个，连续测量无剔除</div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">🔧 全功能计算</button>
+    </div>
+
+    <div class="right-panel">
+        <div class="result-section">
+            <div id="distNormalCard" class="result-item distribute" style="flex:1;">
+                <strong>📊 分布与正态性检测</strong>
+                <div id="distNormalContent"></div>
+            </div>
+            <div id="spcStabilityCard" class="result-item" style="flex:1;">
+                <strong>🔧 SPC判异</strong>
+                <div id="spcStabilityContent"></div>
+            </div>
+            <div id="cpkCenteringCard" class="result-item result-main" style="flex:1;">
+                <strong>🧮 计算结果</strong>
+                <div id="cpkCenteringContent"></div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-toolbar">
+                <span>📋 测量数据</span>
+                <button class="fold-btn" onclick="foldTable()">折叠/展开</button>
+            </div>
+            <div class="horizontal-table-box" id="tableBox">
+                <div id="dataTable"></div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="chart-title">📈 扭矩控制图（1σ/2σ/3σ 标识 + 8大判异）</div>
+            <div class="control-stats" id="controlStats">
+                <span>均值: <span id="meanVal">--</span></span>
+                <span>UCL(+3σ): <span id="uclVal">--</span></span>
+                <span>LCL(-3σ): <span id="lclVal">--</span></span>
+                <span>+2σ: <span id="p2sVal">--</span></span>
+                <span>-2σ: <span id="m2sVal">--</span></span>
+                <span>+1σ: <span id="p1sVal">--</span></span>
+                <span>-1σ: <span id="m1sVal">--</span></span>
+                <span>标准差: <span id="stdVal">--</span></span>
+            </div>
+            <canvas id="chartControl"></canvas>
+        </div>
+
+        <div class="chart-section">
+            <div class="chart-title">📊 扭矩分布直方图 + 正态分布曲线</div>
+            <canvas id="chartNormal"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+let controlChart, normalChart;
+let abnormalIndexList = [];
+let tableFolded = false;
+
+// ========== 工具函数 ==========
+function clearData(){document.getElementById('data').value = '';}
+function foldTable(){
+    tableFolded = !tableFolded;
+    const box = document.getElementById('tableBox');
+    box.style.display = tableFolded ? 'none' : 'block';
+}
+
+// ========== SPC 8大判异 ==========
+function checkAbnormal(data, mean, std) {
+    const UCL = mean + 3 * std;
+    const LCL = mean - 3 * std;
+    const sigma1 = mean + std, sigma1_ = mean - std;
+    const sigma2 = mean + 2 * std, sigma2_ = mean - 2 * std;
+    const n = data.length;
+    
+    let pointColors = Array(n).fill('#165DFF');
+    let pointSizes = Array(n).fill(4);
+    let abnormalSet = new Set();
+    let abnormalMsg = [];
+
+    // 规则1: 1点超3σ
+    for (let i = 0; i < n; i++) {
+        if (data[i] > UCL || data[i] < LCL) abnormalSet.add(i);
+    }
+    if (abnormalSet.size > 0) abnormalMsg.push(`1点超3σ控制限`);
+
+    // 规则2: 连续7点在均值同侧
+    let upSide = 0, downSide = 0;
+    for (let i = 0; i < n; i++) {
+        if (data[i] > mean) { upSide++; downSide = 0; }
+        else if (data[i] < mean) { downSide++; upSide = 0; }
+        else { upSide = 0; downSide = 0; }
+        
+        if (upSide >= 7) {
+            for (let j = i-6; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续7点在均值同侧(上)");
+        }
+        if (downSide >= 7) {
+            for (let j = i-6; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续7点在均值同侧(下)");
+        }
+    }
+
+    // 规则3: 连续7点单调上升/下降
+    let upTrend = 0, downTrend = 0;
+    for (let i = 1; i < n; i++) {
+        if (data[i] > data[i-1]) { upTrend++; downTrend = 0; }
+        else if (data[i] < data[i-1]) { downTrend++; upTrend = 0; }
+        else { upTrend = 0; downTrend = 0; }
+        
+        if (upTrend >= 6) {
+            for (let j = i-6; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续7点单调上升");
+        }
+        if (downTrend >= 6) {
+            for (let j = i-6; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续7点单调下降");
+        }
+    }
+
+    // 规则4: 连续14点交替
+    for (let i = 13; i < n; i++) {
+        let alt = true;
+        for (let j = i-13; j <= i-2; j++) {
+            if (!((data[j] > data[j+1] && data[j+1] < data[j+2]) || 
+                  (data[j] < data[j+1] && data[j+1] > data[j+2]))) {
+                alt = false;
+                break;
+            }
+        }
+        if (alt) {
+            for (let j = i-13; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续14点交替波动");
+        }
+    }
+
+    // 规则5: 3点中有2点超同侧2σ
+    for (let i = 2; i < n; i++) {
+        let cntUp = 0, cntDown = 0;
+        for (let j = i-2; j <= i; j++) {
+            if (data[j] > sigma2) cntUp++;
+            if (data[j] < sigma2_) cntDown++;
+        }
+        if (cntUp >= 2) {
+            for (let j = i-2; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("3点中有2点超上侧2σ");
+        }
+        if (cntDown >= 2) {
+            for (let j = i-2; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("3点中有2点超下侧2σ");
+        }
+    }
+
+    // 规则6: 5点中有4点超同侧1σ
+    for (let i = 4; i < n; i++) {
+        let cntUp = 0, cntDown = 0;
+        for (let j = i-4; j <= i; j++) {
+            if (data[j] > sigma1) cntUp++;
+            if (data[j] < sigma1_) cntDown++;
+        }
+        if (cntUp >= 4) {
+            for (let j = i-4; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("5点中有4点超上侧1σ");
+        }
+        if (cntDown >= 4) {
+            for (let j = i-4; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("5点中有4点超下侧1σ");
+        }
+    }
+
+    // 规则7: 连续15点在1σ内
+    for (let i = 14; i < n; i++) {
+        let inRange = true;
+        for (let j = i-14; j <= i; j++) {
+            if (!(data[j] > sigma1_ && data[j] < sigma1)) { inRange = false; break; }
+        }
+        if (inRange) {
+            for (let j = i-14; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续15点在1σ内");
+        }
+    }
+
+    // 规则8: 连续8点无1点在1σ内
+    for (let i = 7; i < n; i++) {
+        let out = true;
+        for (let j = i-7; j <= i; j++) {
+            if (data[j] > sigma1_ && data[j] < sigma1) { out = false; break; }
+        }
+        if (out) {
+            for (let j = i-7; j <= i; j++) abnormalSet.add(j);
+            abnormalMsg.push("连续8点无1点在1σ内");
+        }
+    }
+
+    // 标记颜色和大小
+    abnormalIndexList = Array.from(abnormalSet);
+    abnormalIndexList.forEach(i => {
+        pointColors[i] = '#ff0000';
+        pointSizes[i] = 6;
+    });
+
+    return {
+        isStable: abnormalSet.size === 0,
+        msg: [...new Set(abnormalMsg)],
+        UCL, LCL, sigma1, sigma1_, sigma2, sigma2_,
+        pointColors, pointSizes
+    };
+}
+
+// ========== 正态性检验 ==========
+function shapiroWilk(data) {
+    const n = data.length;
+    if (n < 3) return { isNormal: false, note: "❌ 样本量至少3个" };
+    
+    const mean = data.reduce((a,b)=>a+b,0)/n;
+    let skew = 0, kurt = 0;
+    data.forEach(x => {
+        const d = x - mean;
+        skew += d**3;
+        kurt += d**4;
+    });
+    const std = Math.sqrt(data.reduce((a,b)=>a+(b-mean)**2,0)/n);
+    skew = (skew / n) / (std**3);
+    kurt = (kurt / n) / (std**4) - 3;
+    
+    const approxNormal = Math.abs(skew) < 0.5 && Math.abs(kurt) < 1;
+    
+    let note = approxNormal ? "✅ 近似正态分布 (基于偏度峰度)" : "❌ 可能非正态 (偏度峰度异常)";
+    if (!approxNormal) note += `<div class="reason">【原因】偏度=${skew.toFixed(3)}，峰度=${kurt.toFixed(3)}</div>`;
+    
+    return { W: "--", pValue: "--", isNormal: approxNormal, note };
+}
+
+// ========== 分布形态检测 ==========
+function detectDistribution(data, mean, std) {
+    const n = data.length;
+    if (n < 10) return { type:"数据不足", note:"样本量过少", valid:false };
+
+    let skew = 0, kurt = 0;
+    data.forEach(x => {
+        const d = x - mean;
+        skew += d**3;
+        kurt += d**4;
+    });
+    skew = (skew / n) / (std**3);
+    kurt = (kurt / n) / (std**4) - 3;
+
+    const bins = {};
+    data.forEach(x => { const k=Math.round(x*100)/100; bins[k]=(bins[k]||0)+1; });
+    const vals = Object.values(bins);
+    const maxFreq = Math.max(...vals);
+    const secondMax = vals.filter(v => v < maxFreq).sort((a,b)=>b-a)[0] || 0;
+    const isBimodal = (secondMax > maxFreq * 0.7) && (vals.length > 5);
+
+    const minFreq = Math.min(...vals);
+    const rangeFreq = maxFreq - minFreq;
+    const isUniform = (rangeFreq <= 2) && (vals.length > 8) && (maxFreq <= n * 0.2); 
+
+    let type, basis, valid;
+
+    if (isBimodal) {
+        type = "🌁 双峰分布";
+        basis = `次峰频次${secondMax}，主峰${maxFreq} → 非正态`;
+        valid = false;
+    } else if (isUniform) {
+        type = "📏 近似均匀分布 → 非正态";
+        basis = `频次范围${rangeFreq}，分布平坦`;
+        valid = false;
+    } else if (skew > 0.5) {
+        type = "📈 正偏分布 → 非正态";
+        basis = `偏度=${skew.toFixed(3)} > 0.5`;
+        valid = false;
+    } else if (skew < -0.5) {
+        type = "📉 负偏分布 → 非正态";
+        basis = `偏度=${skew.toFixed(3)} < -0.5`;
+        valid = false;
+    } else if (Math.abs(skew) < 0.3 && Math.abs(kurt) < 0.7) {
+        type = "📊 正态分布 (Normal)";
+        basis = `偏度=${skew.toFixed(3)}，峰度=${kurt.toFixed(3)}`;
+        valid = true;
+    } else {
+        type = "🔍 近似正态分布";
+        basis = "无明显异常";
+        valid = true;
+    }
+
+    const note = `<div class="dist-reason">${basis} ${valid ? '| ✅ 可计算CPK' : '| ❌ 不建议计算CPK'}</div>`;
+    return { type, note, valid };
+}
+
+// ========== 表格渲染 ==========
+function renderTable(data){
+    const chunkSize = 25;
+    const chunks = [];
+    for (let i = 0; i < data.length; i += chunkSize) {
+        chunks.push(data.slice(i, i + chunkSize));
+    }
+
+    let html = '';
+    chunks.forEach((chunk, chunkIndex) => {
+        const startIdx = chunkIndex * chunkSize;
+        const indexRow = `<tr>
+            <th>序号</th>
+            ${chunk.map((_, i) => `<td>${startIdx + i + 1}</td>`).join('')}
+        </tr>`;
+        const valueRow = `<tr>
+            <th>扭矩值</th>
+            ${chunk.map((val, i) => {
+                const globalIdx = startIdx + i;
+                const isAb = abnormalIndexList.includes(globalIdx);
+                return `<td class="${isAb?'abnormal-row':''}">${val.toFixed(3)}</td>`;
+            }).join('')}
+        </tr>`;
+        html += `<table class="horizontal-table">${indexRow}${valueRow}</table>`;
+    });
+
+    document.getElementById('dataTable').innerHTML = html;
+}
+
+// ========== 主计算 ==========
+function calculate() {
+    const type = document.getElementById('type').value;
+    const usl = parseFloat(document.getElementById('usl').value);
+    const lsl = parseFloat(document.getElementById('lsl').value);
+    const target = parseFloat(document.getElementById('target').value);
+    const text = document.getElementById('data').value.trim();
+
+    if(isNaN(usl)||isNaN(lsl)||usl<=lsl){alert("公差输入错误：上公差必须大于下公差");return;}
+    if(isNaN(target)){alert("请输入目标值 Target");return;}
+    if(!text){alert("请输入拧紧扭矩数据");return;}
+
+    const nums = text.split(/[\s,，]+/).map(Number).filter(x=>!isNaN(x));
+    const n = nums.length;
+    if (n < 3) { alert("数据点太少，至少需要3个"); return; }
+
+    if (type === 'CMK' && n < 50) alert("警告：CMK 通常要求 50 个样本，当前仅 " + n + " 个，结果仅供参考。");
+    if ((type === 'CPK' || type === 'PPK') && n < 25) alert("建议：CPK/PPK 分析一般需要至少 25 个样本，当前仅 " + n + " 个，结果可能不稳定。");
+
+    const sum = nums.reduce((a,b)=>a+b,0);
+    const mean = sum/n;
+    const sumSq = nums.reduce((a,b)=>a+(b-mean)**2,0);
+    const std_s = Math.sqrt(sumSq/(n-1));
+    const std_p = Math.sqrt(sumSq/n);
+    let std = type==='CPK' ? std_s : std_p;
+    if (std === 0) { alert("数据无波动 (标准差为0)，无法计算能力指数"); return; }
+
+    const cpu = (usl-mean)/(3*std); const cpl = (mean-lsl)/(3*std); const cpk = Math.min(cpu,cpl);
+    
+    // 对中度
+    const tolerance = usl - lsl;
+    const centering = (mean - target) / tolerance;
+    const centeringPercent = centering * 100;
+
+    // 判定等级
+    let level, color, levelText;
+    if (type === 'CMK') {
+        if (cpk >= 1.67) {
+            level = "🔵 设备能力充足";
+            color = "#27ae60";
+            levelText = "设备能力充足";
+        } else if (cpk >= 1.33) {
+            level = "🟡 设备能力勉强";
+            color = "#f39c12";
+            levelText = "设备能力勉强";
+        } else {
+            level = "🔴 设备能力不足";
+            color = "#e74c3c";
+            levelText = "设备能力不足";
+        }
+    } else {
+        if (cpk >= 1.67) {
+            level = "🔵 能力充足";
+            color = "#27ae60";
+            levelText = "能力充足";
+        } else if (cpk >= 1.33) {
+            level = "🟢 合格";
+            color = "#165DFF";
+            levelText = "合格";
+        } else if (cpk >= 1.0) {
+            level = "🟡 勉强可用";
+            color = "#f39c12";
+            levelText = "勉强可用";
+        } else {
+            level = "🔴 能力不足";
+            color = "#e74c3c";
+            levelText = "能力不足";
+        }
+    }
+
+    const spc = checkAbnormal(nums, mean, std);
+    let norm = shapiroWilk(nums);
+    const dist = detectDistribution(nums, mean, std);
+
+    // 更新统计数值
+    document.getElementById('meanVal').innerText = mean.toFixed(3);
+    document.getElementById('uclVal').innerText = spc.UCL.toFixed(3);
+    document.getElementById('lclVal').innerText = spc.LCL.toFixed(3);
+    document.getElementById('p2sVal').innerText = spc.sigma2.toFixed(3);
+    document.getElementById('m2sVal').innerText = spc.sigma2_.toFixed(3);
+    document.getElementById('p1sVal').innerText = spc.sigma1.toFixed(3);
+    document.getElementById('m1sVal').innerText = spc.sigma1_.toFixed(3);
+    document.getElementById('stdVal').innerText = std.toFixed(3);
+
+    // 分布卡片
+    let distNormalHtml = `
+        <div><strong>分布类型：</strong>${dist.type}</div>
+        <div>${dist.note}</div>
+        <div style="margin-top:8px;"><strong>正态性检验：</strong>${norm.note}</div>
+    `;
+    document.getElementById('distNormalContent').innerHTML = distNormalHtml;
+
+    // SPC判异卡片
+    let spcHtml = spc.isStable ?
+        `<div class="normal" style="padding:8px;">✅ 未触发判异规则，过程稳定。</div>` :
+        `<div class="abnormal" style="padding:8px;">⚠️ 触发判异规则：<br>${spc.msg.join('<br>')}<br><strong>过程异常！</strong></div>`;
+    document.getElementById('spcStabilityContent').innerHTML = spcHtml;
+
+    // 结果卡片
+    let typeFullName = type === 'CMK' ? '设备能力指数 CMK' : (type === 'PPK' ? '过程性能指数 PPK' : '过程能力指数 CPK');
+    let centeringClass = Math.abs(centeringPercent) > 10 ? 'red-text' : '';
+    let centeringDisplay = `<span class="${centeringClass}">${centeringPercent.toFixed(3)}%</span>`;
+    
+    let overallValid = dist.valid && spc.isStable && cpk >= 1.0 && Math.abs(centeringPercent) <= 10;
+    let overallClass = overallValid ? 'overall-good' : 'overall-bad';
+    let overallText = overallValid ? '✅ 综合评估：可接受' : '⚠️ 综合评估：需改进';
+    
+    let cpkCenteringHtml = `
+        <div style="font-size:20px; font-weight:bold; color:${color};">${typeFullName} = ${cpk.toFixed(3)}</div>
+        <div style="font-size:16px; margin:4px 0;">${level}</div>
+        <hr style="margin:8px 0; border-color:#ddd;">
+        <div><strong>对中度：</strong> <span style="font-size:18px;">${centeringDisplay}</span></div>
+        <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">(均值-目标)/公差，超过±10%提示</div>
+        <div style="margin-top:10px;"><span class="${overallClass}">${overallText}</span></div>
+    `;
+    document.getElementById('cpkCenteringContent').innerHTML = cpkCenteringHtml;
+
+    renderTable(nums);
+    drawCharts(nums, mean, usl, lsl, spc, std);
+}
+
+// ========== 绘图 ==========
+function drawCharts(data, mean, usl, lsl, spc, std) {
+    if (controlChart) controlChart.destroy();
+    if (normalChart) normalChart.destroy();
+
+    const labels = Array.from({ length: data.length }, (_, i) => i + 1);
+
+    controlChart = new Chart(document.getElementById('chartControl').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: '+1σ', data: Array(data.length).fill(spc.sigma1), borderColor: '#64748b', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
+                { label: '-1σ', data: Array(data.length).fill(spc.sigma1_), borderColor: '#64748b', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
+                { label: '+2σ', data: Array(data.length).fill(spc.sigma2), borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2], fill: false, pointRadius: 0 },
+                { label: '-2σ', data: Array(data.length).fill(spc.sigma2_), borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2], fill: false, pointRadius: 0 },
+                { label: '+3σ(UCL)', data: Array(data.length).fill(spc.UCL), borderColor: '#ff8c00', borderWidth: 2, borderDash: [], fill: false, pointRadius: 0 },
+                { label: '-3σ(LCL)', data: Array(data.length).fill(spc.LCL), borderColor: '#ff8c00', borderWidth: 2, borderDash: [], fill: false, pointRadius: 0 },
+                { label: '扭矩', data: data, borderColor: '#165DFF', borderWidth: 2.5, fill: false, pointBackgroundColor: spc.pointColors, pointRadius: spc.pointSizes },
+                { label: '均值', data: Array(data.length).fill(mean), borderColor: '#d62828', borderDash: [6, 3], fill: false, pointRadius: 0 },
+                { label: 'USL 上公差', data: Array(data.length).fill(usl), borderColor: '#ff0000', borderWidth: 2.5, fill: false, pointRadius: 0 },
+                { label: 'LSL 下公差', data: Array(data.length).fill(lsl), borderColor: '#ff0000', borderWidth: 2.5, fill: false, pointRadius: 0 },
+            ]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true, position: 'top' } }
+        }
+    });
+
+    // 直方图
+    const bins = {};
+    data.forEach(x => { const k = Math.round(x * 100) / 100; bins[k] = (bins[k] || 0) + 1; });
+    const keys = Object.keys(bins).map(Number).sort((a, b) => a - b);
+    const vals = keys.map(k => bins[k]);
+    const mf = Math.max(...vals);
+    const curve = keys.map(x => mf * Math.exp(-0.5 * Math.pow((x - mean) / std, 2)));
+
+    normalChart = new Chart(document.getElementById('chartNormal').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: keys,
+            datasets: [
+                { label: '频次', data: vals, backgroundColor: 'rgba(22,93,255,0.7)' },
+                { label: '正态拟合', data: curve, type: 'line', borderColor: '#ff4444', borderWidth: 3, fill: false, tension: 0.4, pointRadius: 0 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+</script>
+</body>
+</html>
