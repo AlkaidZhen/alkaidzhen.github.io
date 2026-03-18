@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VCDQ-拧紧结果分析 (最终版)</title>
+<title>拧紧结果分析 (自适应表格版)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <style>
     *{box-sizing: border-box; font-family: "Microsoft YaHei", Arial; margin:0; padding:0;}
@@ -20,7 +20,7 @@
         width:360px; display:flex; flex-direction:column; gap:14px;
     }
     .right-panel{
-        flex:1; display:flex; flex-direction:column; gap:14px; overflow-y:auto;
+        flex:1; display:flex; flex-direction:column; gap:14px; overflow-y:auto;  /* 整体滚动 */
     }
     .title{
         text-align:center; color:#1f2937; font-size:22px; font-weight:bold;
@@ -63,6 +63,7 @@
     .normal{background:#f0fff4; border:1px solid #c3f0d1;}
     .abnormal{background:#fff0f0; border:1px solid #ffcccc;}
     .distribute{background:#fefce8; border:1px solid #fde68a;}
+    .spc-card{background:#f0f7ff; border:1px solid #bcd6f7;}
     .reason{
         margin-top:5px; padding-left:6px; border-left:3px solid #ff6b6b;
         font-size:12px; color:#c0392b;
@@ -84,25 +85,27 @@
 
     .table-section{
         background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:12px;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
+        /* 移除flex限制，由内容撑开 */
     }
     .table-toolbar{
         display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
-        flex-shrink: 0;
     }
     .fold-btn{
         padding:4px 8px; background:#e5e7eb; border:none; border-radius:3px; cursor:pointer; font-size:12px;
     }
+    .data-count{
+        font-size:12px; color:#555; margin-left:10px;
+    }
     .horizontal-table-box{
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: auto;
+        /* 移除固定高度和垂直滚动，高度由内容决定 */
+        overflow-x: auto;  /* 保留水平滚动防止表格过宽 */
         border: 1px solid #e5e7eb;
         background: white;
         padding: 4px;
-        max-height: 400px;
+    }
+    /* 折叠状态通过类名控制 */
+    .horizontal-table-box.folded {
+        display: none;
     }
     .horizontal-table{
         width:100%; border-collapse:collapse; font-size:11px;
@@ -117,6 +120,9 @@
     }
     .horizontal-table .abnormal-row{
         background:#fff1f0; color:#ff0000; font-weight:bold;
+    }
+    .no-data-msg{
+        padding:20px; text-align:center; color:#999; font-size:14px;
     }
 
     .chart-section{
@@ -137,7 +143,7 @@
 
 <div class="main-box">
     <div class="left-panel">
-        <div class="title">VCDQ-拧紧结果分析 (最终版)</div>
+        <div class="title">拧紧结果分析 (自适应表格版)</div>
         <div class="sub-title">CPK/PPK/CMK | SPC 8大判异 | 自动分布检测</div>
 
         <div class="card">
@@ -147,7 +153,7 @@
                 <option value="PPK">PPK (试产初始过程)</option>
                 <option value="CMK">CMK (设备能力验证)</option>
             </select>
-            <div class="tip">CMK推荐50个数据，CPK/PPK建议≥25个数据</div>
+            <div class="tip">CPK/PPK建议≥25个数据，CMK最少5个数据</div>
         </div>
 
         <div class="card">
@@ -186,11 +192,11 @@
                 <strong>📊 分布与正态性检测</strong>
                 <div id="distNormalContent"></div>
             </div>
-            <div id="spcStabilityCard" class="result-item" style="flex:1;">
+            <div id="spcStabilityCard" class="result-item spc-card" style="flex:1;">
                 <strong>🔧 SPC判异</strong>
                 <div id="spcStabilityContent"></div>
             </div>
-            <div id="cpkCenteringCard" class="result-item result-main" style="flex:1;">
+            <div id="cpkCenteringCard" class="result-item result-main" style="flex:1; border:1px solid #bbdaf7;">
                 <strong>🧮 计算结果</strong>
                 <div id="cpkCenteringContent"></div>
             </div>
@@ -198,8 +204,11 @@
 
         <div class="table-section">
             <div class="table-toolbar">
-                <span>📋 测量数据</span>
-                <button class="fold-btn" onclick="foldTable()">折叠/展开</button>
+                <span>
+                    📋 测量数据
+                    <span class="data-count" id="dataCount">(0个)</span>
+                </span>
+                <button class="fold-btn" onclick="foldTable()">折叠表格</button>
             </div>
             <div class="horizontal-table-box" id="tableBox">
                 <div id="dataTable"></div>
@@ -231,14 +240,24 @@
 <script>
 let controlChart, normalChart;
 let abnormalIndexList = [];
-let tableFolded = false;
+let tableFolded = false; // 当前折叠状态，false=展开
 
 // ========== 工具函数 ==========
 function clearData(){document.getElementById('data').value = '';}
+
+// 折叠/展开表格 (使用类名控制)
 function foldTable(){
     tableFolded = !tableFolded;
     const box = document.getElementById('tableBox');
-    box.style.display = tableFolded ? 'none' : 'block';
+    const btn = document.querySelector('.fold-btn');
+    if (tableFolded) {
+        box.classList.add('folded');
+        btn.textContent = "展开表格";
+    } else {
+        box.classList.remove('folded');
+        btn.textContent = "折叠表格";
+    }
+    console.log('折叠状态:', tableFolded, 'box classes:', box.className);
 }
 
 // ========== SPC 8大判异 ==========
@@ -282,7 +301,7 @@ function checkAbnormal(data, mean, std) {
     for (let i = 1; i < n; i++) {
         if (data[i] > data[i-1]) { upTrend++; downTrend = 0; }
         else if (data[i] < data[i-1]) { downTrend++; upTrend = 0; }
-        else { upTrend = 0; downTrend = 0; }
+        else { upTrend = 0; downTrend = 0; }  // 相等时两个趋势都重置
         
         if (upTrend >= 6) {
             for (let j = i-6; j <= i; j++) abnormalSet.add(j);
@@ -383,7 +402,7 @@ function checkAbnormal(data, mean, std) {
     };
 }
 
-// ========== 正态性检验 ==========
+// ========== 正态性检验（偏度峰度近似） ==========
 function shapiroWilk(data) {
     const n = data.length;
     if (n < 3) return { isNormal: false, note: "❌ 样本量至少3个" };
@@ -466,6 +485,16 @@ function detectDistribution(data, mean, std) {
 
 // ========== 表格渲染 ==========
 function renderTable(data){
+    const container = document.getElementById('dataTable');
+    const countSpan = document.getElementById('dataCount');
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="no-data-msg">暂无数据，请先输入数据并计算</div>';
+        countSpan.innerText = '(0个)';
+        console.log('表格渲染: 无数据');
+        return;
+    }
+    countSpan.innerText = `(${data.length}个)`;
+
     const chunkSize = 25;
     const chunks = [];
     for (let i = 0; i < data.length; i += chunkSize) {
@@ -490,11 +519,13 @@ function renderTable(data){
         html += `<table class="horizontal-table">${indexRow}${valueRow}</table>`;
     });
 
-    document.getElementById('dataTable').innerHTML = html;
+    container.innerHTML = html;
+    console.log('表格渲染完成，数据个数:', data.length);
 }
 
 // ========== 主计算 ==========
 function calculate() {
+    console.log('===== 开始计算 =====');
     const type = document.getElementById('type').value;
     const usl = parseFloat(document.getElementById('usl').value);
     const lsl = parseFloat(document.getElementById('lsl').value);
@@ -505,11 +536,14 @@ function calculate() {
     if(isNaN(target)){alert("请输入目标值 Target");return;}
     if(!text){alert("请输入拧紧扭矩数据");return;}
 
-    const nums = text.split(/[\s,，]+/).map(Number).filter(x=>!isNaN(x));
+    // 改进数据解析：支持空格、逗号、中文逗号、换行，过滤空字符串
+    const nums = text.split(/[\s,，]+/).map(Number).filter(x => !isNaN(x) && x !== '');
     const n = nums.length;
+    console.log('解析后的数据:', nums);
+    console.log('数据个数:', n);
     if (n < 3) { alert("数据点太少，至少需要3个"); return; }
 
-    if (type === 'CMK' && n < 50) alert("警告：CMK 通常要求 50 个样本，当前仅 " + n + " 个，结果仅供参考。");
+    if (type === 'CMK' && n < 5) alert("警告：CMK 最低要求 5 个样本，当前仅 " + n + " 个，结果将无效。");
     if ((type === 'CPK' || type === 'PPK') && n < 25) alert("建议：CPK/PPK 分析一般需要至少 25 个样本，当前仅 " + n + " 个，结果可能不稳定。");
 
     const sum = nums.reduce((a,b)=>a+b,0);
@@ -612,6 +646,18 @@ function calculate() {
 
     renderTable(nums);
     drawCharts(nums, mean, usl, lsl, spc, std);
+
+    // 根据当前折叠状态设置表格显示（通过类名）
+    const box = document.getElementById('tableBox');
+    const btn = document.querySelector('.fold-btn');
+    if (tableFolded) {
+        box.classList.add('folded');
+        btn.textContent = '展开表格';
+    } else {
+        box.classList.remove('folded');
+        btn.textContent = '折叠表格';
+    }
+    console.log('计算结束，折叠状态:', tableFolded, 'box classes:', box.className);
 }
 
 // ========== 绘图 ==========
@@ -664,6 +710,18 @@ function drawCharts(data, mean, usl, lsl, spc, std) {
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
+
+// 页面加载完成后初始化折叠按钮文字和表格显示
+window.addEventListener('load', function() {
+    const btn = document.querySelector('.fold-btn');
+    const box = document.getElementById('tableBox');
+    // 初始状态：tableFolded = false，表格显示，按钮文字为“折叠表格”
+    box.classList.remove('folded'); // 确保没有折叠类
+    btn.textContent = '折叠表格';
+    // 初始化数据计数
+    renderTable([]);
+    console.log('页面加载完成，表格初始状态');
+});
 </script>
 </body>
 </html>
