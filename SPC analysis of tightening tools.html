@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-<title>拧紧结果分析 (扭矩+角度双参数版 修复版)</title>
+<title>拧紧结果分析 (扭矩+角度双参数版 初始空值 清除全清)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <style>
-    /* 样式与上一版本相同，略 (保持原样) */
     *{box-sizing: border-box; font-family: "Microsoft YaHei", Arial, sans-serif; margin:0; padding:0;}
     body{
         margin:0; padding:10px; background:#f0f2f5; min-height:100vh;
@@ -178,29 +177,6 @@
     }
     canvas{width:100% !important; height:260px !important;}
 
-    /* 运行图区域折叠样式 */
-    .run-chart-container {
-        margin-top: 10px;
-        border-top: 1px dashed #ccc;
-        padding-top: 10px;
-    }
-    .run-chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 6px;
-    }
-    .run-chart-toggle {
-        padding:4px 8px; background:#e5e7eb; border:none; border-radius:3px; cursor:pointer; font-size:12px;
-    }
-    .run-chart-box {
-        height: 200px;
-        transition: height 0.2s;
-    }
-    .run-chart-box.folded {
-        display: none;
-    }
-
     @media screen and (max-width: 768px) {
         .main-box{
             flex-direction: column;
@@ -237,9 +213,9 @@
     <!-- 左侧输入面板 -->
     <div class="left-panel">
         <div class="title">拧紧分析 (双参数版)</div>
-        <div class="sub-title">扭矩+角度 | SPC 8大判异 | JB检验 | 运行图</div>
+        <div class="sub-title">扭矩+角度 | SPC 8大判异 | JB检验</div>
 
-        <!-- 计算类型选择 (新增) -->
+        <!-- 计算类型选择 -->
         <div class="card">
             <label>计算类型</label>
             <select id="calcType">
@@ -250,16 +226,16 @@
             <div class="tip">CPK/PPK建议≥25个数据，CMK最少5个数据</div>
         </div>
 
-        <!-- 扭矩卡片 -->
+        <!-- 扭矩卡片 (初始无默认值) -->
         <div class="card">
             <label>🔩 扭矩参数</label>
             <div style="margin-top:8px;">
                 <label style="font-size:13px;">上公差 USL (N·m)</label>
-                <input type="number" id="torque_usl" placeholder="例如 11.0" step="0.01" value="11">
+                <input type="number" id="torque_usl" placeholder="例如 11.0" step="0.01">
                 <label style="font-size:13px; margin-top:6px;">下公差 LSL (N·m)</label>
-                <input type="number" id="torque_lsl" placeholder="例如 9.0" step="0.01" value="9">
+                <input type="number" id="torque_lsl" placeholder="例如 9.0" step="0.01">
                 <label style="font-size:13px; margin-top:6px;">目标值 Target (可选)</label>
-                <input type="number" id="torque_target" placeholder="例如 10.0" step="0.01" value="10">
+                <input type="number" id="torque_target" placeholder="例如 10.0" step="0.01">
                 <label style="font-size:13px; margin-top:6px;">扭矩数据</label>
                 <textarea id="torque_data" placeholder="空格/逗号分隔，例如：10.01 10.02 ..."></textarea>
                 <div class="btn-group" style="margin-top:4px;">
@@ -269,16 +245,16 @@
             </div>
         </div>
 
-        <!-- 角度卡片 -->
+        <!-- 角度卡片 (初始无默认值) -->
         <div class="card">
             <label>📐 角度参数</label>
             <div style="margin-top:8px;">
                 <label style="font-size:13px;">上公差 USL (°)</label>
-                <input type="number" id="angle_usl" placeholder="例如 95.0" step="0.1" value="95">
+                <input type="number" id="angle_usl" placeholder="例如 95.0" step="0.1">
                 <label style="font-size:13px; margin-top:6px;">下公差 LSL (°)</label>
-                <input type="number" id="angle_lsl" placeholder="例如 85.0" step="0.1" value="85">
+                <input type="number" id="angle_lsl" placeholder="例如 85.0" step="0.1">
                 <label style="font-size:13px; margin-top:6px;">目标值 Target (可选)</label>
-                <input type="number" id="angle_target" placeholder="例如 90.0" step="0.1" value="90">
+                <input type="number" id="angle_target" placeholder="例如 90.0" step="0.1">
                 <label style="font-size:13px; margin-top:6px;">角度数据</label>
                 <textarea id="angle_data" placeholder="空格/逗号分隔，例如：90.2 89.8 ..."></textarea>
                 <div class="btn-group" style="margin-top:4px;">
@@ -322,11 +298,6 @@
                     <span>标准差: <span id="torque_std">--</span></span>
                 </div>
                 <canvas id="torque_chartControl"></canvas>
-                <!-- 运行图 -->
-                <div class="run-chart-container">
-                    <div class="run-chart-header"><span>📉 扭矩运行图 (中位数线)</span><button class="run-chart-toggle" onclick="toggleTorqueRun()">展开运行图</button></div>
-                    <div class="run-chart-box folded" id="torque_runChartBox"><canvas id="torque_chartRun"></canvas></div>
-                </div>
             </div>
             <!-- 直方图 -->
             <div class="chart-section"><div class="chart-title">📊 扭矩直方图 + 正态曲线 (动态分组)</div><canvas id="torque_chartNormal"></canvas></div>
@@ -355,11 +326,6 @@
                     <span>标准差: <span id="angle_std">--</span></span>
                 </div>
                 <canvas id="angle_chartControl"></canvas>
-                <!-- 运行图 -->
-                <div class="run-chart-container">
-                    <div class="run-chart-header"><span>📉 角度运行图 (中位数线)</span><button class="run-chart-toggle" onclick="toggleAngleRun()">展开运行图</button></div>
-                    <div class="run-chart-box folded" id="angle_runChartBox"><canvas id="angle_chartRun"></canvas></div>
-                </div>
             </div>
             <!-- 直方图 -->
             <div class="chart-section"><div class="chart-title">📊 角度直方图 + 正态曲线 (动态分组)</div><canvas id="angle_chartNormal"></canvas></div>
@@ -370,18 +336,34 @@
 <script>
 // ---------- 全局变量 ----------
 let torqueResult = null, angleResult = null;
-let torqueChartControl, torqueChartNormal, torqueChartRun;
-let angleChartControl, angleChartNormal, angleChartRun;
+let torqueChartControl, torqueChartNormal;
+let angleChartControl, angleChartNormal;
 
 let torqueTableFolded = false, angleTableFolded = false;
-let torqueRunFolded = true, angleRunFolded = true;
 
 // ---------- 工具函数 ----------
-function clearTorque() { document.getElementById('torque_data').value = ''; }
-function clearAngle() { document.getElementById('angle_data').value = ''; }
+// 清除扭矩卡片所有输入
+function clearTorque() {
+    document.getElementById('torque_usl').value = '';
+    document.getElementById('torque_lsl').value = '';
+    document.getElementById('torque_target').value = '';
+    document.getElementById('torque_data').value = '';
+}
+// 清除角度卡片所有输入
+function clearAngle() {
+    document.getElementById('angle_usl').value = '';
+    document.getElementById('angle_lsl').value = '';
+    document.getElementById('angle_target').value = '';
+    document.getElementById('angle_data').value = '';
+}
 
-// 随机扭矩示例 (固定规格: USL=11, LSL=9, target=10, 标准差0.3)
+// 随机扭矩示例 (填充固定规格并生成随机数据)
 function randomTorqueExample() {
+    // 填充固定规格
+    document.getElementById('torque_usl').value = '11';
+    document.getElementById('torque_lsl').value = '9';
+    document.getElementById('torque_target').value = '10';
+    // 生成随机数据
     const sampleSizes = [5,10,25,50,125];
     const n = sampleSizes[Math.floor(Math.random() * sampleSizes.length)];
     const mean = 10, std = 0.3;
@@ -396,8 +378,13 @@ function randomTorqueExample() {
     document.getElementById('torque_data').value = values.join(' ');
 }
 
-// 随机角度示例 (固定规格: USL=95, LSL=85, target=90, 标准差1.7)
+// 随机角度示例 (填充固定规格并生成随机数据)
 function randomAngleExample() {
+    // 填充固定规格
+    document.getElementById('angle_usl').value = '95';
+    document.getElementById('angle_lsl').value = '85';
+    document.getElementById('angle_target').value = '90';
+    // 生成随机数据
     const sampleSizes = [5,10,25,50,125];
     const n = sampleSizes[Math.floor(Math.random() * sampleSizes.length)];
     const mean = 90, std = 1.7;
@@ -426,22 +413,6 @@ function foldAngleTable() {
     const btn = document.querySelector('#anglePanel .fold-btn');
     box.classList.toggle('folded', angleTableFolded);
     btn.textContent = angleTableFolded ? '展开表格' : '折叠表格';
-}
-
-// 运行图折叠
-function toggleTorqueRun() {
-    torqueRunFolded = !torqueRunFolded;
-    const box = document.getElementById('torque_runChartBox');
-    const btn = document.querySelector('#torquePanel .run-chart-toggle');
-    box.classList.toggle('folded', torqueRunFolded);
-    btn.textContent = torqueRunFolded ? '展开运行图' : '折叠运行图';
-}
-function toggleAngleRun() {
-    angleRunFolded = !angleRunFolded;
-    const box = document.getElementById('angle_runChartBox');
-    const btn = document.querySelector('#anglePanel .run-chart-toggle');
-    box.classList.toggle('folded', angleRunFolded);
-    btn.textContent = angleRunFolded ? '展开运行图' : '折叠运行图';
 }
 
 // 标签切换
@@ -491,7 +462,7 @@ function analyzeParameter(data, usl, lsl, targetInput, type) {
     };
 }
 
-// 通用SPC判异 (修正版，返回abnormalIndexList)
+// 通用SPC判异 (返回abnormalIndexList)
 function checkAbnormal(data, mean, std) {
     const UCL = mean + 3*std, LCL = mean - 3*std;
     const sigma1 = mean+std, sigma1_ = mean-std;
@@ -577,7 +548,7 @@ function checkAbnormal(data, mean, std) {
         msg: [...new Set(abnormalMsg)],
         UCL, LCL, sigma1, sigma1_, sigma2, sigma2_,
         pointColors, pointSizes,
-        abnormalIndexList  // 关键：返回异常索引列表
+        abnormalIndexList
     };
 }
 
@@ -634,7 +605,6 @@ function detectDistribution(data, mean, std) {
 // 表格渲染
 function renderTable(containerId, data, abnormalIndexList) {
     const container = document.getElementById(containerId);
-    // 获取对应的数据计数span
     const countSpanId = containerId === 'torque_dataTable' ? 'torque_dataCount' : 'angle_dataCount';
     const countSpan = document.getElementById(countSpanId);
     if (!data || data.length===0) {
@@ -660,17 +630,15 @@ function renderTable(containerId, data, abnormalIndexList) {
     container.innerHTML = html;
 }
 
-// 绘制控制图、直方图、运行图
-function drawCharts(canvasControlId, canvasNormalId, canvasRunId, data, mean, usl, lsl, spc, std, paramName) {
+// 绘制控制图和直方图 (无运行图)
+function drawCharts(canvasControlId, canvasNormalId, data, mean, usl, lsl, spc, std, paramName) {
     // 销毁旧图
     if (paramName==='torque') {
         if (torqueChartControl) torqueChartControl.destroy();
         if (torqueChartNormal) torqueChartNormal.destroy();
-        if (torqueChartRun) torqueChartRun.destroy();
     } else {
         if (angleChartControl) angleChartControl.destroy();
         if (angleChartNormal) angleChartNormal.destroy();
-        if (angleChartRun) angleChartRun.destroy();
     }
 
     const labels = Array.from({length:data.length}, (_,i)=>i+1);
@@ -740,29 +708,12 @@ function drawCharts(canvasControlId, canvasNormalId, canvasRunId, data, mean, us
         options: { responsive:true, maintainAspectRatio:false, scales:{ x:{title:{display:true, text:'值'}}, y:{beginAtZero:true} } }
     });
 
-    // 运行图
-    const median = sorted[Math.floor(n/2)];
-    const ctxRun = document.getElementById(canvasRunId).getContext('2d');
-    const newRun = new Chart(ctxRun, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: '数据', data: data, borderColor: '#2c3e50', backgroundColor:'transparent', tension:0.1, pointRadius:3, pointBackgroundColor:'#2980b9' },
-                { label: '中位数线', data: Array(data.length).fill(median), borderColor:'#e67e22', borderWidth:2, borderDash:[5,5], fill:false, pointRadius:0 }
-            ]
-        },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true } } }
-    });
-
     if (paramName === 'torque') {
         torqueChartControl = newControl;
         torqueChartNormal = newNormal;
-        torqueChartRun = newRun;
     } else {
         angleChartControl = newControl;
         angleChartNormal = newNormal;
-        angleChartRun = newRun;
     }
 }
 
@@ -838,7 +789,7 @@ function updateCards(param, res, type) {
 
 // 主计算函数
 function calculateAll() {
-    const calcType = document.getElementById('calcType').value; // 获取计算类型
+    const calcType = document.getElementById('calcType').value;
 
     // 扭矩
     const torque_usl = parseFloat(document.getElementById('torque_usl').value);
@@ -853,7 +804,7 @@ function calculateAll() {
             renderTable('torque_dataTable', torqueResult.nums, torqueResult.spc.abnormalIndexList);
             updateStats('torque', torqueResult);
             updateCards('torque', torqueResult, calcType);
-            drawCharts('torque_chartControl', 'torque_chartNormal', 'torque_chartRun', torqueResult.nums, torqueResult.mean, torque_usl, torque_lsl, torqueResult.spc, torqueResult.std, 'torque');
+            drawCharts('torque_chartControl', 'torque_chartNormal', torqueResult.nums, torqueResult.mean, torque_usl, torque_lsl, torqueResult.spc, torqueResult.std, 'torque');
         } else {
             alert('扭矩数据计算失败，请检查数据是否有效');
         }
@@ -874,7 +825,7 @@ function calculateAll() {
             renderTable('angle_dataTable', angleResult.nums, angleResult.spc.abnormalIndexList);
             updateStats('angle', angleResult);
             updateCards('angle', angleResult, calcType);
-            drawCharts('angle_chartControl', 'angle_chartNormal', 'angle_chartRun', angleResult.nums, angleResult.mean, angle_usl, angle_lsl, angleResult.spc, angleResult.std, 'angle');
+            drawCharts('angle_chartControl', 'angle_chartNormal', angleResult.nums, angleResult.mean, angle_usl, angle_lsl, angleResult.spc, angleResult.std, 'angle');
         } else {
             alert('角度数据计算失败，请检查数据是否有效');
         }
@@ -890,9 +841,6 @@ window.onload = function() {
     document.querySelector('#torquePanel .fold-btn').textContent = '折叠表格';
     document.getElementById('angle_tableBox').classList.remove('folded');
     document.querySelector('#anglePanel .fold-btn').textContent = '折叠表格';
-    // 运行图按钮
-    document.querySelector('#torquePanel .run-chart-toggle').textContent = '展开运行图';
-    document.querySelector('#anglePanel .run-chart-toggle').textContent = '展开运行图';
     // 清空表格占位
     renderTable('torque_dataTable', [], []);
     renderTable('angle_dataTable', [], []);
