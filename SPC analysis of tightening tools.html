@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-<title>拧紧结果分析 (中英文版)</title>
+<title>拧紧结果分析 (Version 1.08)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <style>
     *{box-sizing: border-box; font-family: "Microsoft YaHei", Arial, sans-serif; margin:0; padding:0;}
@@ -229,8 +229,10 @@
             padding:10px;
         }
         .control-stats{
-            gap:5px;
-            font-size:10px;
+            gap:8px;
+            font-size:11px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, auto));
         }
         .control-stats span{
             white-space: nowrap;
@@ -246,7 +248,7 @@
 <div class="main-box">
     <!-- 左侧输入面板 -->
     <div class="left-panel">
-        <div class="title" data-i18n="appTitle">拧紧分析 (中英文版)</div>
+        <div class="title" data-i18n="appTitle">拧紧分析 (Version 1.08)</div>
         <div class="sub-title" data-i18n="appSubtitle">扭矩+角度 | SPC 8大判异 | JB检验 | CPK全分组</div>
 
         <!-- 计算类型选择 -->
@@ -257,7 +259,7 @@
                 <option value="PPK" data-i18n="calcPPK">PPK (试产初始过程)</option>
                 <option value="CMK" data-i18n="calcCMK">CMK (设备能力验证)</option>
             </select>
-            <div class="tip" data-i18n="calcTip">CPK/PPK建议≥25个数据，CMK最少5个数据。CPK当数据≥125且能被5整除时自动分组，所有分析基于分组数据。</div>
+            <div class="tip" data-i18n="calcTip">CPK/PPK建议≥25个数据，CMK建议≥25个数据,最少5个数据。CPK当数据≥125且能被5整除时自动分组，所有分析基于分组数据。</div>
         </div>
 
         <!-- 扭矩卡片 -->
@@ -292,11 +294,13 @@
 
         <button class="calc-btn" onclick="calculateAll()" data-i18n="calcButton">🔧 全功能计算 (扭矩+角度)</button>
 
-        <!-- 合并后的按钮行：清除全部 + 随机扭矩 + 随机角度 -->
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button class="clear-btn" style="flex:1; padding:12px; font-size:16px;" onclick="clearAll()" data-i18n="clearAll">🗑️ 清除全部</button>
-            <button class="example-btn" style="flex:1; padding:12px; font-size:16px;" onclick="randomTorqueExample()" data-i18n="randomTorque">🎲 随机扭矩</button>
-            <button class="example-btn" style="flex:1; padding:12px; font-size:16px;" onclick="randomAngleExample()" data-i18n="randomAngle">🎲 随机角度</button>
+        <!-- 优化后的按钮布局：清除全部独立一行，随机扭矩和随机角度并排 -->
+        <div style="margin-top: 8px;">
+            <button class="clear-btn" style="width:100%; padding:10px; font-size:14px; margin-bottom:8px;" onclick="clearAll()" data-i18n="clearAll">🗑️ 清除全部</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="example-btn" style="flex:1; padding:10px; font-size:14px;" onclick="randomTorqueExample()" data-i18n="randomTorque">🎲 随机扭矩</button>
+                <button class="example-btn" style="flex:1; padding:10px; font-size:14px;" onclick="randomAngleExample()" data-i18n="randomAngle">🎲 随机角度</button>
+            </div>
         </div>
     </div>
 
@@ -337,7 +341,10 @@
             </div>
             <!-- 控制图 (基于分析数据) -->
             <div class="chart-section">
-                <div class="chart-title"><span data-i18n="controlChart">📈 控制图</span>（基于<span id="torque_chartSource">原始数据</span>）</div>
+                <div class="chart-title">
+                    <span data-i18n="controlChart">📈 控制图</span>
+                    <span data-i18n="basedOnLabel">（基于</span><span id="torque_chartSource">原始数据</span><span data-i18n="closeParen">）</span>
+                </div>
                 <div class="control-stats" id="torque_controlStats">
                     <span><span data-i18n="mean">均值</span>: <span id="torque_mean">--</span></span>
                     <span>UCL: <span id="torque_ucl">--</span></span>
@@ -347,13 +354,21 @@
                     <span>+1σ: <span id="torque_p1s">--</span></span>
                     <span>-1σ: <span id="torque_m1s">--</span></span>
                     <span><span data-i18n="std">标准差</span>: <span id="torque_std">--</span></span>
+                    <span><span data-i18n="median">中位数</span>: <span id="torque_median">--</span></span>
+                    <span><span data-i18n="range">极差</span>: <span id="torque_range">--</span></span>
                     <span><span data-i18n="max">最大值</span>: <span id="torque_max">--</span></span>
                     <span><span data-i18n="min">最小值</span>: <span id="torque_min">--</span></span>
                 </div>
                 <canvas id="torque_chartControl"></canvas>
             </div>
             <!-- 直方图 (基于分析数据) -->
-            <div class="chart-section"><div class="chart-title"><span data-i18n="histogram">📊 直方图 + 正态曲线</span>（基于<span id="torque_histSource">原始数据</span>）</div><canvas id="torque_chartNormal"></canvas></div>
+            <div class="chart-section">
+                <div class="chart-title">
+                    <span data-i18n="histogram">📊 直方图 + 正态曲线</span>
+                    <span data-i18n="basedOnLabel">（基于</span><span id="torque_histSource">原始数据</span><span data-i18n="closeParen">）</span>
+                </div>
+                <canvas id="torque_chartNormal"></canvas>
+            </div>
         </div>
 
         <!-- 角度分析面板 -->
@@ -383,7 +398,10 @@
                 </div>
             </div>
             <div class="chart-section">
-                <div class="chart-title"><span data-i18n="controlChart">📈 控制图</span>（基于<span id="angle_chartSource">原始数据</span>）</div>
+                <div class="chart-title">
+                    <span data-i18n="controlChart">📈 控制图</span>
+                    <span data-i18n="basedOnLabel">（基于</span><span id="angle_chartSource">原始数据</span><span data-i18n="closeParen">）</span>
+                </div>
                 <div class="control-stats" id="angle_controlStats">
                     <span><span data-i18n="mean">均值</span>: <span id="angle_mean">--</span></span>
                     <span>UCL: <span id="angle_ucl">--</span></span>
@@ -393,12 +411,20 @@
                     <span>+1σ: <span id="angle_p1s">--</span></span>
                     <span>-1σ: <span id="angle_m1s">--</span></span>
                     <span><span data-i18n="std">标准差</span>: <span id="angle_std">--</span></span>
+                    <span><span data-i18n="median">中位数</span>: <span id="angle_median">--</span></span>
+                    <span><span data-i18n="range">极差</span>: <span id="angle_range">--</span></span>
                     <span><span data-i18n="max">最大值</span>: <span id="angle_max">--</span></span>
                     <span><span data-i18n="min">最小值</span>: <span id="angle_min">--</span></span>
                 </div>
                 <canvas id="angle_chartControl"></canvas>
             </div>
-            <div class="chart-section"><div class="chart-title"><span data-i18n="histogram">📊 直方图 + 正态曲线</span>（基于<span id="angle_histSource">原始数据</span>）</div><canvas id="angle_chartNormal"></canvas></div>
+            <div class="chart-section">
+                <div class="chart-title">
+                    <span data-i18n="histogram">📊 直方图 + 正态曲线</span>
+                    <span data-i18n="basedOnLabel">（基于</span><span id="angle_histSource">原始数据</span><span data-i18n="closeParen">）</span>
+                </div>
+                <canvas id="angle_chartNormal"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -417,7 +443,7 @@ let currentLang = 'zh'; // 默认中文
 // ---------- 语言包 ----------
 const i18n = {
     zh: {
-        appTitle: '拧紧分析 (中英文版)',
+        appTitle: '拧紧分析 (Version 1.08)',
         appSubtitle: '扭矩+角度 | SPC 8大判异 | JB检验 | CPK全分组',
         calcTypeLabel: '计算类型',
         calcCPK: 'CPK (量产稳定过程)',
@@ -450,13 +476,14 @@ const i18n = {
         histogram: '📊 直方图 + 正态曲线',
         mean: '均值',
         std: '标准差',
+        median: '中位数',
+        range: '极差',
         max: '最大值',
         min: '最小值',
         foldTable: '折叠表格',
         expandTable: '展开表格',
         expandGroup: '展开分组',
         foldGroup: '折叠分组',
-        // 动态内容中可能用到的
         basedOn: '基于',
         groups: '组均值',
         raw: '原始数据',
@@ -482,10 +509,26 @@ const i18n = {
         note: '注：p>0.05表示无显著偏离正态；超额峰度≈0为正态；请结合直方图综合判断。',
         histNote: '直方图',
         normal: '无明显异常',
-        abnormalHist: '提示异常'
+        abnormalHist: '提示异常',
+        tooltipAbnormal: '⚠️ 异常点',
+        jbAccept: '✅ 接受正态',
+        jbReject: '❌ 拒绝正态',
+        basedOnLabel: '（基于',
+        closeParen: '）',
+        centeringLabel: '对中度',
+        deviationMaxLabel: '最大值偏差',
+        deviationMinLabel: '最小值偏差',
+        noTarget: '无目标值',
+        invalidTarget: '目标值无效',
+        processStable: '过程稳定',
+        noRulesTriggered: '未触发任何判异规则',
+        processAbnormal: '过程异常',
+        rulesTriggered: '触发以下判异规则：',
+        checkSpecialCause: '请检查过程是否存在特殊原因',
+        deviationNote: '(相对于目标值的偏差百分比，超过±10%提示)'
     },
     en: {
-        appTitle: 'Tightening Analysis (EN)',
+        appTitle: 'Tightening Analysis (Final)',
         appSubtitle: 'Torque+Angle | SPC 8 Rules | JB Test | CPK Grouping',
         calcTypeLabel: 'Calculation Type',
         calcCPK: 'CPK (Stable Process)',
@@ -518,6 +561,8 @@ const i18n = {
         histogram: '📊 Histogram + Normal Curve',
         mean: 'Mean',
         std: 'Std Dev',
+        median: 'Median',
+        range: 'Range',
         max: 'Max',
         min: 'Min',
         foldTable: 'Fold',
@@ -549,7 +594,23 @@ const i18n = {
         note: 'Note: p>0.05 indicates no significant deviation; excess kurtosis≈0 for normal; refer to histogram.',
         histNote: 'Histogram',
         normal: 'Normal',
-        abnormalHist: 'Abnormal'
+        abnormalHist: 'Abnormal',
+        tooltipAbnormal: '⚠️ Abnormal point',
+        jbAccept: '✅ Normal',
+        jbReject: '❌ Non-normal',
+        basedOnLabel: ' (based on ',
+        closeParen: ')',
+        centeringLabel: 'Target-value centering MC',
+        deviationMaxLabel: 'Max deviation',
+        deviationMinLabel: 'Min deviation',
+        noTarget: 'No target',
+        invalidTarget: 'Invalid target',
+        processStable: 'Process Stable',
+        noRulesTriggered: 'No SPC rules triggered',
+        processAbnormal: 'Process Abnormal',
+        rulesTriggered: 'Rules triggered:',
+        checkSpecialCause: 'Check for special causes',
+        deviationNote: '(Deviation percentage from target, >±10% highlighted)'
     }
 };
 
@@ -557,13 +618,11 @@ const i18n = {
 function toggleLanguage() {
     currentLang = currentLang === 'zh' ? 'en' : 'zh';
     updateLanguage();
-    // 如果有数据，重新计算以刷新动态内容
     if (torqueResult || angleResult) {
         calculateAll();
     }
 }
 
-// 更新所有静态文本
 function updateLanguage() {
     const elements = document.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
@@ -572,13 +631,11 @@ function updateLanguage() {
             el.innerText = i18n[currentLang][key];
         }
     });
-    // 更新select选项
     const calcTypeSelect = document.getElementById('calcType');
     calcTypeSelect.options[0].text = i18n[currentLang].calcCPK;
     calcTypeSelect.options[1].text = i18n[currentLang].calcPPK;
     calcTypeSelect.options[2].text = i18n[currentLang].calcCMK;
     
-    // 更新折叠按钮文字（根据当前状态）
     const torqueBtns = document.querySelectorAll('#torquePanel .fold-btn');
     if (torqueBtns.length >= 2) {
         torqueBtns[0].textContent = torqueTableFolded ? i18n[currentLang].expandTable : i18n[currentLang].foldTable;
@@ -681,15 +738,11 @@ function analyzeParameter(data, usl, lsl, targetInput, type) {
     const hasTarget = !isNaN(targetInput);
     const target = hasTarget ? targetInput : NaN;
 
-    // 解析原始数据
     const rawNums = data.split(/[\s,，]+/).map(Number).filter(x => !isNaN(x) && x!=='');
     const n_raw = rawNums.length;
     if (n_raw < 3) return null;
 
-    // 分组判断 (仅CPK且满足条件)
-    let groupedData = null;
-    let groupInfo = null;
-    let useGrouped = false;
+    let groupedData = null, groupInfo = null, useGrouped = false;
     if (type === 'CPK' && n_raw >= 125 && n_raw % 5 === 0) {
         const groupSize = 5;
         const numGroups = n_raw / groupSize;
@@ -704,17 +757,19 @@ function analyzeParameter(data, usl, lsl, targetInput, type) {
         useGrouped = true;
     }
 
-    // 选择用于分析的数据集
     const analysisNums = useGrouped ? groupedData : rawNums;
     const n_analysis = analysisNums.length;
 
-    // 计算分析数据集的统计量
     const sum = analysisNums.reduce((a,b)=>a+b,0);
     const mean = sum / n_analysis;
     const sumSq = analysisNums.reduce((a,b)=>a+(b-mean)**2,0);
-    const std = Math.sqrt(sumSq / (n_analysis - 1)); // 样本标准差
+    const std = Math.sqrt(sumSq / (n_analysis - 1));
+    const sorted = [...analysisNums].sort((a,b)=>a-b);
+    const median = n_analysis % 2 === 0 ? (sorted[n_analysis/2 -1] + sorted[n_analysis/2])/2 : sorted[Math.floor(n_analysis/2)];
+    const range = Math.max(...analysisNums) - Math.min(...analysisNums);
+    const analysisMax = Math.max(...analysisNums);
+    const analysisMin = Math.min(...analysisNums);
 
-    // 能力指数
     const cpu = (usl - mean) / (3 * std);
     const cpl = (mean - lsl) / (3 * std);
     const cpk = Math.min(cpu, cpl);
@@ -722,19 +777,13 @@ function analyzeParameter(data, usl, lsl, targetInput, type) {
     const centering = hasTarget ? (mean - target) / tolerance : null;
     const centeringPercent = centering !== null ? centering * 100 : null;
 
-    // 基于分析数据集的 SPC判异
     const spc = checkAbnormal(analysisNums, mean, std);
-    // 基于分析数据集的 正态性检验
     const normTests = normalityTests(analysisNums);
-    // 基于分析数据集的 分布检测
     const dist = detectDistribution(analysisNums, mean, std);
 
     return {
-        rawNums,                    // 原始数据（用于表格显示）
-        groupedData, groupInfo,     // 分组数据（用于显示分组表格）
-        useGrouped,                 // 是否使用了分组
-        analysisNums,               // 实际用于分析的数据
-        mean, std,                  // 分析数据的均值和标准差
+        rawNums, groupedData, groupInfo, useGrouped, analysisNums,
+        mean, std, median, range, analysisMax, analysisMin,
         cpk, centeringPercent, hasTarget,
         spc, normTests, dist,
         n_raw, n_analysis,
@@ -872,14 +921,12 @@ function rule8(data, sigma1_, sigma1, abnormalSet) {
     return msg;
 }
 
-// 整合SPC判异
 function checkAbnormal(data, mean, std) {
     const UCL = mean + 3*std, LCL = mean - 3*std;
     const sigma1 = mean+std, sigma1_ = mean-std;
     const sigma2 = mean+2*std, sigma2_ = mean-2*std;
-    const n = data.length;
-    let pointColors = Array(n).fill('#165DFF');
-    let pointSizes = Array(n).fill(4);
+    let pointColors = Array(data.length).fill('#165DFF');
+    let pointSizes = Array(data.length).fill(4);
     let abnormalSet = new Set();
     let abnormalMsg = [];
 
@@ -897,21 +944,16 @@ function checkAbnormal(data, mean, std) {
 
     return {
         isStable: abnormalSet.size===0,
-        msg: [...new Set(abnormalMsg)], // 去重
+        msg: [...new Set(abnormalMsg)],
         UCL, LCL, sigma1, sigma1_, sigma2, sigma2_,
         pointColors, pointSizes,
         abnormalIndexList
     };
 }
 
-// 正态性检验 (Jarque-Bera + 返回偏度峰度)
 function normalityTests(data) {
     const n = data.length;
-    if (n < 3) return { 
-        jb: { stat:NaN, p:NaN, isNormal:false, note:'样本量过少' }, 
-        approx: { isNormal:false, note:'❌ 样本量至少3个' },
-        skew: NaN, kurt: NaN 
-    };
+    if (n < 3) return { jb: { stat:NaN, p:NaN, isNormal:false, note:'样本量过少' }, approx: { isNormal:false, note:'❌ 样本量至少3个' }, skew: NaN, kurt: NaN };
     const mean = data.reduce((a,b)=>a+b,0)/n;
     let skew=0, kurt=0;
     data.forEach(x => { const d=x-mean; skew += d**3; kurt += d**4; });
@@ -930,7 +972,6 @@ function normalityTests(data) {
     };
 }
 
-// 分布检测（优化双峰和均匀条件）
 function detectDistribution(data, mean, std) {
     const n = data.length;
     if (n<10) return { type:'数据不足', note:'样本量过少', valid:false };
@@ -944,10 +985,8 @@ function detectDistribution(data, mean, std) {
     const vals = Object.values(bins);
     const maxFreq = Math.max(...vals);
     const secondMax = vals.filter(v=>v<maxFreq).sort((a,b)=>b-a)[0] || 0;
-    // 双峰检测：次峰比例从0.7改为0.6
     const isBimodal = (secondMax > maxFreq * 0.6) && vals.length > 5;
     const rangeFreq = maxFreq - Math.min(...vals);
-    // 均匀分布：最大频次条件放宽至 n*0.25
     const isUniform = (rangeFreq <= 2) && vals.length > 8 && maxFreq <= n * 0.25;
 
     let type, basis, valid;
@@ -961,7 +1000,7 @@ function detectDistribution(data, mean, std) {
     return { type, note, valid };
 }
 
-// 原始数据表格渲染 (支持异常标记+最大最小高亮)
+// ========== 修复表格渲染：使用正确的HTML标签 ==========
 function renderTable(containerId, data, abnormalIndexList) {
     const container = document.getElementById(containerId);
     const countSpanId = containerId === 'torque_dataTable' ? 'torque_dataCount' : 'angle_dataCount';
@@ -976,33 +1015,35 @@ function renderTable(containerId, data, abnormalIndexList) {
     const maxVal = Math.max(...data);
     const minVal = Math.min(...data);
     const eps = 1e-6;
-
     const chunkSize = 25;
     const chunks = [];
     for (let i=0; i<data.length; i+=chunkSize) chunks.push(data.slice(i,i+chunkSize));
 
     let html = '';
     chunks.forEach((chunk, idx) => {
-        const start = idx*chunkSize;
-        const indexRow = `<tr><th>${i18n[currentLang].serialNo}</th>${chunk.map((_,i)=>`<td>${start+i+1}</td>`).join('')}</tr>`;
-        const valueRow = `<tr><th>${i18n[currentLang].value}</th>${chunk.map((val,i)=>{
-            const global = start+i;
+        const start = idx * chunkSize;
+        // 构建序号行
+        let indexRow = '<tr><th>' + i18n[currentLang].serialNo + '</th>';
+        for (let i = 0; i < chunk.length; i++) {
+            indexRow += '<td>' + (start + i + 1) + '</td>';
+        }
+        indexRow += '</tr>';
+        // 构建数值行
+        let valueRow = '<tr><th>' + i18n[currentLang].value + '</th>';
+        for (let i = 0; i < chunk.length; i++) {
+            const global = start + i;
             let cls = '';
-            if (abnormalIndexList && abnormalIndexList.includes(global)) {
-                cls = 'abnormal-row';
-            } else if (Math.abs(val - maxVal) < eps) {
-                cls = 'highlight-max';
-            } else if (Math.abs(val - minVal) < eps) {
-                cls = 'highlight-min';
-            }
-            return `<td class="${cls}">${val.toFixed(3)}</td>`;
-        }).join('')}</tr>`;
+            if (abnormalIndexList && abnormalIndexList.includes(global)) cls = 'abnormal-row';
+            else if (Math.abs(chunk[i] - maxVal) < eps) cls = 'highlight-max';
+            else if (Math.abs(chunk[i] - minVal) < eps) cls = 'highlight-min';
+            valueRow += `<td class="${cls}">${chunk[i].toFixed(3)}</td>`;
+        }
+        valueRow += '</tr>';
         html += `<table class="horizontal-table">${indexRow}${valueRow}</table>`;
     });
     container.innerHTML = html;
 }
 
-// 分组表格渲染 (与原始数据样式一致)
 function renderGroupTable(containerId, groupedData, abnormalIndexList) {
     const container = document.getElementById(containerId);
     const countSpanId = containerId === 'torque_groupTable' ? 'torque_groupCount' : 'angle_groupCount';
@@ -1017,33 +1058,35 @@ function renderGroupTable(containerId, groupedData, abnormalIndexList) {
     const maxVal = Math.max(...groupedData);
     const minVal = Math.min(...groupedData);
     const eps = 1e-6;
-
     const chunkSize = 25;
     const chunks = [];
     for (let i=0; i<groupedData.length; i+=chunkSize) chunks.push(groupedData.slice(i,i+chunkSize));
 
     let html = '';
     chunks.forEach((chunk, idx) => {
-        const start = idx*chunkSize;
-        const indexRow = `<tr><th>${i18n[currentLang].groupNo}</th>${chunk.map((_,i)=>`<td>${start+i+1}</td>`).join('')}</tr>`;
-        const valueRow = `<tr><th>${i18n[currentLang].meanValue}</th>${chunk.map((val,i)=>{
-            const global = start+i;
+        const start = idx * chunkSize;
+        // 组号行
+        let indexRow = '<tr><th>' + i18n[currentLang].groupNo + '</th>';
+        for (let i = 0; i < chunk.length; i++) {
+            indexRow += '<td>' + (start + i + 1) + '</td>';
+        }
+        indexRow += '</tr>';
+        // 均值行
+        let valueRow = '<tr><th>' + i18n[currentLang].meanValue + '</th>';
+        for (let i = 0; i < chunk.length; i++) {
+            const global = start + i;
             let cls = '';
-            if (abnormalIndexList && abnormalIndexList.includes(global)) {
-                cls = 'abnormal-row';
-            } else if (Math.abs(val - maxVal) < eps) {
-                cls = 'highlight-max';
-            } else if (Math.abs(val - minVal) < eps) {
-                cls = 'highlight-min';
-            }
-            return `<td class="${cls}">${val.toFixed(3)}</td>`;
-        }).join('')}</tr>`;
+            if (abnormalIndexList && abnormalIndexList.includes(global)) cls = 'abnormal-row';
+            else if (Math.abs(chunk[i] - maxVal) < eps) cls = 'highlight-max';
+            else if (Math.abs(chunk[i] - minVal) < eps) cls = 'highlight-min';
+            valueRow += `<td class="${cls}">${chunk[i].toFixed(3)}</td>`;
+        }
+        valueRow += '</tr>';
         html += `<table class="horizontal-table">${indexRow}${valueRow}</table>`;
     });
     container.innerHTML = html;
 }
 
-// 绘制图表 (使用配置对象)
 function drawCharts(config) {
     const { canvasControlId, canvasNormalId, data, mean, std, usl, lsl, spc, paramName, dataType } = config;
 
@@ -1061,26 +1104,22 @@ function drawCharts(config) {
     }
 
     const labels = Array.from({length:data.length}, (_,i)=>i+1);
-    // 找出最大最小值
     const maxVal = Math.max(...data);
     const minVal = Math.min(...data);
     const maxIndex = data.indexOf(maxVal);
     const minIndex = data.indexOf(minVal);
 
-    // 复制SPC的点样式（异常点已标记为红色圆形大小6）
     const pointColors = [...spc.pointColors];
     const pointSizes = [...spc.pointSizes];
     const pointStyles = Array(data.length).fill('circle');
 
-    // 标记最大值（如果不是异常点）
     if (!spc.abnormalIndexList.includes(maxIndex)) {
-        pointColors[maxIndex] = '#000000'; // 黑色
+        pointColors[maxIndex] = '#000000';
         pointSizes[maxIndex] = 6;
         pointStyles[maxIndex] = 'circle';
     }
-    // 标记最小值（如果不是异常点）
     if (!spc.abnormalIndexList.includes(minIndex)) {
-        pointColors[minIndex] = '#000000'; // 黑色
+        pointColors[minIndex] = '#000000';
         pointSizes[minIndex] = 6;
         pointStyles[minIndex] = 'circle';
     }
@@ -1097,36 +1136,28 @@ function drawCharts(config) {
                 { label: '-2σ', data: Array(data.length).fill(mean - 2*std), borderColor: '#94a3b8', borderWidth:1, borderDash:[2,2], fill:false, pointRadius:0 },
                 { label: '+3σ(UCL)', data: Array(data.length).fill(mean + 3*std), borderColor: '#ff8c00', borderWidth:2, borderDash:[], fill:false, pointRadius:0 },
                 { label: '-3σ(LCL)', data: Array(data.length).fill(mean - 3*std), borderColor: '#ff8c00', borderWidth:2, borderDash:[], fill:false, pointRadius:0 },
-                { 
-                    label: currentLang === 'zh' ? '数据' : 'Data', 
-                    data: data, 
-                    borderColor: '#165DFF', 
-                    borderWidth:2.5, 
-                    fill:false, 
-                    pointBackgroundColor: pointColors,
-                    pointRadius: pointSizes,
-                    pointHoverRadius: 8,
-                    pointStyle: pointStyles
-                },
+                { label: currentLang === 'zh' ? '数据' : 'Data', data: data, borderColor: '#165DFF', borderWidth:2.5, fill:false, pointBackgroundColor: pointColors, pointRadius: pointSizes, pointHoverRadius: 8, pointStyle: pointStyles },
                 { label: currentLang === 'zh' ? '均值' : 'Mean', data: Array(data.length).fill(mean), borderColor: '#d62828', borderDash:[6,3], fill:false, pointRadius:0 },
                 { label: 'USL', data: Array(data.length).fill(usl), borderColor: '#ff0000', borderWidth:2, fill:false, pointRadius:0 },
                 { label: 'LSL', data: Array(data.length).fill(lsl), borderColor: '#ff0000', borderWidth:2, fill:false, pointRadius:0 },
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                legend: { display: true, position: 'top' }
-            }
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: true, position: 'top' }, tooltip: { callbacks: { label: function(context) {
+                let label = context.dataset.label || '';
+                if (label === (currentLang === 'zh' ? '数据' : 'Data')) {
+                    const value = context.raw;
+                    const index = context.dataIndex;
+                    let result = `${label}: ${value.toFixed(3)}`;
+                    if (spc.abnormalIndexList.includes(index)) result += ` (${i18n[currentLang].tooltipAbnormal})`;
+                    return result;
+                }
+                return label + ': ' + context.raw.toFixed(3);
+            } } } }
         }
     });
 
-    // 动态直方图
     const sorted = [...data].sort((a,b)=>a-b);
     const n = data.length;
     const q1 = sorted[Math.floor(n*0.25)];
@@ -1167,19 +1198,14 @@ function drawCharts(config) {
                 { label: currentLang === 'zh' ? '正态拟合' : 'Normal Fit', data: fitFreq, type:'line', borderColor:'#ff4444', borderWidth:3, fill:false, tension:0.4, pointRadius:0 }
             ]
         },
-        options: { responsive:true, maintainAspectRatio:false, scales:{ x:{title:{display:true, text: currentLang === 'zh' ? '值' : 'Value'}}, y:{beginAtZero:true} } }
+        options: { responsive:true, maintainAspectRatio:false, scales: { x: { title: { display: true, text: currentLang === 'zh' ? '值' : 'Value' } }, y: { beginAtZero: true } } }
     });
 
-    if (paramName === 'torque') {
-        torqueChartControl = newControl;
-        torqueChartNormal = newNormal;
-    } else {
-        angleChartControl = newControl;
-        angleChartNormal = newNormal;
-    }
+    if (paramName === 'torque') { torqueChartControl = newControl; torqueChartNormal = newNormal; }
+    else { angleChartControl = newControl; angleChartNormal = newNormal; }
 }
-// 更新统计数值 (增加最大值最小值)
-function updateStats(param, mean, std, spc, data) {
+
+function updateStats(param, mean, std, spc, data, median, range) {
     const prefix = param === 'torque' ? 'torque' : 'angle';
     document.getElementById(`${prefix}_mean`).innerText = mean.toFixed(3);
     document.getElementById(`${prefix}_ucl`).innerText = spc.UCL.toFixed(3);
@@ -1189,6 +1215,8 @@ function updateStats(param, mean, std, spc, data) {
     document.getElementById(`${prefix}_p1s`).innerText = (mean + std).toFixed(3);
     document.getElementById(`${prefix}_m1s`).innerText = (mean - std).toFixed(3);
     document.getElementById(`${prefix}_std`).innerText = std.toFixed(3);
+    document.getElementById(`${prefix}_median`).innerText = median.toFixed(3);
+    document.getElementById(`${prefix}_range`).innerText = range.toFixed(3);
     if (data && data.length > 0) {
         document.getElementById(`${prefix}_max`).innerText = Math.max(...data).toFixed(3);
         document.getElementById(`${prefix}_min`).innerText = Math.min(...data).toFixed(3);
@@ -1198,7 +1226,6 @@ function updateStats(param, mean, std, spc, data) {
     }
 }
 
-// 更新结果卡片
 function updateCards(param, res, type) {
     const prefix = param;
 
@@ -1206,23 +1233,16 @@ function updateCards(param, res, type) {
     const jb = res.normTests.jb;
     const skew = res.normTests.skew;
     const kurt = res.normTests.kurt;
-    const jbConclusion = jb.isNormal ? '✅ 接受正态' : '❌ 拒绝正态';
+    const jbConclusion = jb.isNormal ? i18n[currentLang].jbAccept : i18n[currentLang].jbReject;
     const jbStats = `<span style="font-size:0.85em; color:#666;">(p=${jb.p.toFixed(3)})</span>`;
     const jbHtml = `<div><strong>${currentLang === 'zh' ? '正态性检验 (Jarque-Bera)' : 'Normality Test (JB)'}：</strong> <span style="font-weight:bold;">${jbConclusion}</span> ${jbStats}</div>`;
 
-    // 分布形态描述
     let distDesc = res.dist.type;
-    if (res.dist.type.includes('正态')) {
-        distDesc = currentLang === 'zh' ? '近似正态分布' : 'Approx Normal';
-    } else if (res.dist.type.includes('双峰')) {
-        distDesc = currentLang === 'zh' ? '双峰分布 (可能混合总体)' : 'Bimodal (mixture)';
-    } else if (res.dist.type.includes('均匀')) {
-        distDesc = currentLang === 'zh' ? '均匀分布 (数据分布平坦)' : 'Uniform (flat)';
-    } else if (res.dist.type.includes('正偏')) {
-        distDesc = currentLang === 'zh' ? '正偏分布 (右尾较长)' : 'Right-skewed';
-    } else if (res.dist.type.includes('负偏')) {
-        distDesc = currentLang === 'zh' ? '负偏分布 (左尾较长)' : 'Left-skewed';
-    }
+    if (res.dist.type.includes('正态')) distDesc = currentLang === 'zh' ? '近似正态分布' : 'Approx Normal';
+    else if (res.dist.type.includes('双峰')) distDesc = currentLang === 'zh' ? '双峰分布 (可能混合总体)' : 'Bimodal (mixture)';
+    else if (res.dist.type.includes('均匀')) distDesc = currentLang === 'zh' ? '均匀分布 (数据分布平坦)' : 'Uniform (flat)';
+    else if (res.dist.type.includes('正偏')) distDesc = currentLang === 'zh' ? '正偏分布 (右尾较长)' : 'Right-skewed';
+    else if (res.dist.type.includes('负偏')) distDesc = currentLang === 'zh' ? '负偏分布 (左尾较长)' : 'Left-skewed';
     let histNote = res.dist.valid ? i18n[currentLang].normal : i18n[currentLang].abnormalHist;
     let histColor = res.dist.valid ? '#666' : '#ff0000';
     distDesc += ` <span style="font-size:0.85em; color:${histColor};">(${i18n[currentLang].histNote}${histNote})</span>`;
@@ -1231,45 +1251,89 @@ function updateCards(param, res, type) {
     const noteHtml = `<div style="font-size:0.85em; color:#666; margin-top:4px;">${i18n[currentLang].note}</div>`;
 
     let distHtml = `
-        ${jbHtml}
-        <div><strong>${currentLang === 'zh' ? '分布形态' : 'Distribution'}:</strong> ${distDesc}</div>
-        ${skewKurtHtml}
-        ${noteHtml}
+    		   ${jbHtml}
+    			<div style="margin-top:8px;"><strong>${currentLang === 'zh' ? '分布形态' : 'Distribution'}:</strong> ${distDesc}</div>
+    			<div style="margin-top:8px;">${skewKurtHtml}</div>
+    			<div style="margin-top:8px; font-size:0.85em; color:#666;">${noteHtml}</div>
     `;
     document.getElementById(`${prefix}_distContent`).innerHTML = distHtml;
 
     // SPC卡片
     let spcContent = '';
     if (res.spc.isStable) {
-        spcContent = `<div class="normal" style="padding:8px;">✅ ${i18n[currentLang].stable}</div>`;
+        spcContent = `
+            <div style="padding:8px; text-align:center;">
+                <div style="font-size:24px;">✅</div>
+                <div style="font-weight:bold; margin:4px 0;">${i18n[currentLang].processStable}</div>
+                <div style="font-size:0.85em; color:#666;">${i18n[currentLang].noRulesTriggered}</div>
+            </div>
+        `;
     } else {
-        const items = res.spc.msg.map(m => `<li style="color:#ff0000;">${m}</li>`).join('');
-        spcContent = `<div class="abnormal" style="padding:8px; max-height:150px; overflow-y:auto;">⚠️ ${i18n[currentLang].unstable}<ul style="margin-left:16px;">${items}</ul><strong>${i18n[currentLang].abnormal}</strong></div>`;
+        const items = res.spc.msg.map(m => `<li style="color:#ff0000; margin:2px 0;"> ${m}</li>`).join('');
+        spcContent = `
+            <div style="padding:8px;">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                    <span style="font-size:18px;">⚠️</span>
+                    <span style="font-weight:bold;">${i18n[currentLang].processAbnormal}</span>
+                </div>
+                <div style="font-size:0.85em; color:#666; margin-bottom:4px;">${i18n[currentLang].rulesTriggered}</div>
+                <ul style="margin:0 0 4px 0; padding-left:20px;">${items}</ul>
+                <div style="font-size:0.85em; color:#999; margin-top:4px;">${i18n[currentLang].checkSpecialCause}</div>
+            </div>
+        `;
     }
     document.getElementById(`${prefix}_spcContent`).innerHTML = spcContent;
 
-    // 结果卡片
-    let centeringDisplay = res.hasTarget ? 
-        (res.centeringPercent!==null ? `<span style="font-size:20px; font-weight:bold; ${Math.abs(res.centeringPercent)>10 ? 'color:#ff0000;' : ''}">${res.centeringPercent.toFixed(3)}%</span>` : '--') 
-        : `<span class="tip">${currentLang === 'zh' ? '未输入目标值' : 'No target'}</span>`;
+  // 结果卡片
+  let centeringDisplay = '--';
+  let centeringColor = '#000';
+  let centeringNote = '';
+  if (res.hasTarget && res.centeringPercent !== null) {
+  		  const val = res.centeringPercent;
+  		  centeringDisplay = val.toFixed(3) + '%';
+  		  if (val < 0) {
+  			    	 centeringColor = '#f1c40f'; // 黄色
+   		  } else {
+        			centeringColor = Math.abs(val) <= 10 ? '#27ae60' : '#e74c3c';
+  		  }
+    		 centeringNote = currentLang === 'zh' ? '(均值-目标)/公差，超过±10%提示' : '(Mean-Target)/Tolerance, >±10% highlighted';
+   } else if (res.hasTarget) {
+    		centeringDisplay = '--';
+    		centeringNote = currentLang === 'zh' ? '目标值未输入，无法计算对中度' : 'No target, centering N/A';
+   } else {
+    		centeringDisplay = i18n[currentLang].noTarget;
+    		centeringNote = '';
+       }
+
+    let deviationHtml = '';
+    if (res.hasTarget && res.target !== null && res.target !== 0) {
+        const maxDevPercent = (res.analysisMax - res.target) / res.target * 100;
+        const minDevPercent = (res.analysisMin - res.target) / res.target * 100;
+        const maxColor = Math.abs(maxDevPercent) <= 10 ? '#27ae60' : '#e74c3c';
+        const minColor = Math.abs(minDevPercent) <= 10 ? '#27ae60' : '#e74c3c';
+        deviationHtml = `
+            <div><strong>${i18n[currentLang].deviationMaxLabel}:</strong> <span style="color:${maxColor}; font-weight:bold;">${maxDevPercent > 0 ? '+' : ''}${maxDevPercent.toFixed(3)}%</span></div>
+            <div><strong>${i18n[currentLang].deviationMinLabel}:</strong> <span style="color:${minColor}; font-weight:bold;">${minDevPercent > 0 ? '+' : ''}${minDevPercent.toFixed(3)}%</span></div>
+            <div style="font-size:0.85em; color:#666; margin-top:2px;">${i18n[currentLang].deviationNote}</div>
+        `;
+    } else if (res.hasTarget && res.target === 0) {
+        deviationHtml = `<div><span class="tip">${i18n[currentLang].invalidTarget}</span></div>`;
+    } else {
+        deviationHtml = `<div><span class="tip">${i18n[currentLang].noTarget}</span></div>`;
+    }
 
     const cpkThreshold = type === 'CMK' ? 1.67 : 1.33;
     const stableOk = res.spc.isStable;
     const cpkOk = res.cpk >= cpkThreshold;
     const centeringOk = res.hasTarget ? Math.abs(res.centeringPercent) <= 10 : false;
 
-    let overallValid = false;
-    let conclusionText = '';
-    let reasons = [];
-
+    let overallValid = false, conclusionText = '', reasons = [];
     if (res.hasTarget) {
         const mainOk = stableOk && cpkOk && centeringOk;
         if (mainOk) {
             overallValid = true;
             conclusionText = i18n[currentLang].acceptable;
-            if (!res.dist.valid) {
-                reasons.push(i18n[currentLang].reasons.distRef);
-            }
+            if (!res.dist.valid) reasons.push(i18n[currentLang].reasons.distRef);
         } else {
             overallValid = false;
             conclusionText = i18n[currentLang].needImprove;
@@ -1284,7 +1348,6 @@ function updateCards(param, res, type) {
         reasons.push(i18n[currentLang].reasons.noTarget);
         if (!res.dist.valid) reasons.push(i18n[currentLang].reasons.distAbnormal);
     }
-
     const overallClass = overallValid ? 'overall-good' : 'overall-bad';
 
     let level = '';
@@ -1299,19 +1362,20 @@ function updateCards(param, res, type) {
         else level = currentLang === 'zh' ? '🔴 能力不足' : '🔴 Poor';
     }
     let color = res.cpk >= 1.67 ? '#27ae60' : (res.cpk >= 1.33 ? '#165DFF' : (res.cpk >= 1.0 ? '#f39c12' : '#e74c3c'));
-
     const cpkNoteHtml = res.cpkNote ? `<span style="font-size:0.85em;">${res.cpkNote}</span>` : '';
 
     let reasonHtml = '';
-    if (reasons.length > 0) {
-        reasonHtml = '<div style="font-size:12px; color:#666; margin-top:6px;">' + 
-                     reasons.map(r => '· ' + r).join('<br>') + 
-                     '</div>';
-    }
+    if (reasons.length > 0) reasonHtml = '<div style="font-size:12px; color:#666; margin-top:6px;">' + reasons.map(r => '· ' + r).join('<br>') + '</div>';
+
+    let centeringLine = `<strong>${i18n[currentLang].centeringLabel}</strong>: <span style="color:${centeringColor}; font-weight:bold;">${centeringDisplay}</span>`;
+    if (currentLang === 'en' && res.hasTarget && res.centeringPercent !== null) {
+          // 无需额外说明，因为标签已完整
+           }
 
     let resultHtml = `
-        <div><strong>${currentLang === 'zh' ? '对中度' : 'Centering'}:</strong> ${centeringDisplay}</div>
-        <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">${res.hasTarget ? (currentLang === 'zh' ? '(均值-目标)/公差，超过±10%提示' : '(mean-target)/tolerance, >±10% highlighted') : (currentLang === 'zh' ? '目标值未输入，无法计算对中度' : 'No target, centering N/A')}</div>
+        <div>${centeringLine}</div>
+        ${centeringNote ? `<div style="font-size:0.85em; color:#666; margin-top:2px;">${centeringNote}</div>` : ''}
+        ${deviationHtml}
         <hr style="margin:8px 0; border-color:#ddd;">
         <div style="font-size:20px; font-weight:bold; color:${color};">${type === 'CMK' ? (currentLang === 'zh' ? '设备能力指数 CMK' : 'CMK') : (type === 'PPK' ? (currentLang === 'zh' ? '过程性能指数 PPK' : 'PPK') : (currentLang === 'zh' ? '过程能力指数 CPK' : 'CPK'))} = ${res.cpk.toFixed(3)} ${cpkNoteHtml}</div>
         <div style="font-size:16px; margin:4px 0;">${level}</div>
@@ -1321,10 +1385,8 @@ function updateCards(param, res, type) {
     document.getElementById(`${prefix}_resultContent`).innerHTML = resultHtml;
 }
 
-// 主计算函数
 function calculateAll() {
     const calcType = document.getElementById('calcType').value;
-
     let missing = [];
 
     const torque_usl = parseFloat(document.getElementById('torque_usl').value);
@@ -1333,9 +1395,7 @@ function calculateAll() {
     const torque_targetNum = torque_target === '' ? NaN : parseFloat(torque_target);
     const torque_data = document.getElementById('torque_data').value.trim();
 
-    if (isNaN(torque_usl) || isNaN(torque_lsl) || torque_usl <= torque_lsl) {
-        missing.push(currentLang === 'zh' ? '扭矩公差无效' : 'Invalid torque tolerance');
-    }
+    if (isNaN(torque_usl) || isNaN(torque_lsl) || torque_usl <= torque_lsl) missing.push(currentLang === 'zh' ? '扭矩公差无效' : 'Invalid torque tolerance');
     if (!torque_data) missing.push(currentLang === 'zh' ? '扭矩数据为空' : 'Torque data empty');
 
     const angle_usl = parseFloat(document.getElementById('angle_usl').value);
@@ -1344,84 +1404,44 @@ function calculateAll() {
     const angle_targetNum = angle_target === '' ? NaN : parseFloat(angle_target);
     const angle_data = document.getElementById('angle_data').value.trim();
 
-    if (isNaN(angle_usl) || isNaN(angle_lsl) || angle_usl <= angle_lsl) {
-        missing.push(currentLang === 'zh' ? '角度公差无效' : 'Invalid angle tolerance');
-    }
+    if (isNaN(angle_usl) || isNaN(angle_lsl) || angle_usl <= angle_lsl) missing.push(currentLang === 'zh' ? '角度公差无效' : 'Invalid angle tolerance');
     if (!angle_data) missing.push(currentLang === 'zh' ? '角度数据为空' : 'Angle data empty');
 
-    if (missing.length > 0) {
-        alert((currentLang === 'zh' ? '以下输入有误：\n' : 'Input errors:\n') + missing.join('\n'));
-        return;
-    }
+    if (missing.length > 0) { alert((currentLang === 'zh' ? '以下输入有误：\n' : 'Input errors:\n') + missing.join('\n')); return; }
 
-    // 扭矩计算
+    // 扭矩
     torqueResult = analyzeParameter(torque_data, torque_usl, torque_lsl, torque_targetNum, calcType);
     if (torqueResult) {
         const rawAbnormal = torqueResult.useGrouped ? [] : torqueResult.spc.abnormalIndexList;
         renderTable('torque_dataTable', torqueResult.rawNums, rawAbnormal);
-        
         const groupSection = document.getElementById('torque_groupSection');
         if (torqueResult.groupedData) {
             groupSection.style.display = 'block';
             renderGroupTable('torque_groupTable', torqueResult.groupedData, torqueResult.spc.abnormalIndexList);
-        } else {
-            groupSection.style.display = 'none';
-        }
-        
+        } else groupSection.style.display = 'none';
         updateCards('torque', torqueResult, calcType);
         const dataType = torqueResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
-        drawCharts({
-            canvasControlId: 'torque_chartControl',
-            canvasNormalId: 'torque_chartNormal',
-            data: torqueResult.analysisNums,
-            mean: torqueResult.mean,
-            std: torqueResult.std,
-            usl: torque_usl,
-            lsl: torque_lsl,
-            spc: torqueResult.spc,
-            paramName: 'torque',
-            dataType: dataType
-        });
-        updateStats('torque', torqueResult.mean, torqueResult.std, torqueResult.spc, torqueResult.analysisNums);
-    } else {
-        alert(currentLang === 'zh' ? '扭矩数据计算失败，请检查数据是否有效' : 'Torque calculation failed, check data');
-    }
+        drawCharts({ canvasControlId: 'torque_chartControl', canvasNormalId: 'torque_chartNormal', data: torqueResult.analysisNums, mean: torqueResult.mean, std: torqueResult.std, usl: torque_usl, lsl: torque_lsl, spc: torqueResult.spc, paramName: 'torque', dataType: dataType });
+        updateStats('torque', torqueResult.mean, torqueResult.std, torqueResult.spc, torqueResult.analysisNums, torqueResult.median, torqueResult.range);
+    } else alert(currentLang === 'zh' ? '扭矩数据计算失败，请检查数据是否有效' : 'Torque calculation failed, check data');
 
-    // 角度计算
+    // 角度
     angleResult = analyzeParameter(angle_data, angle_usl, angle_lsl, angle_targetNum, calcType);
     if (angleResult) {
         const rawAbnormal = angleResult.useGrouped ? [] : angleResult.spc.abnormalIndexList;
         renderTable('angle_dataTable', angleResult.rawNums, rawAbnormal);
-        
         const groupSection = document.getElementById('angle_groupSection');
         if (angleResult.groupedData) {
             groupSection.style.display = 'block';
             renderGroupTable('angle_groupTable', angleResult.groupedData, angleResult.spc.abnormalIndexList);
-        } else {
-            groupSection.style.display = 'none';
-        }
-        
+        } else groupSection.style.display = 'none';
         updateCards('angle', angleResult, calcType);
         const dataType = angleResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
-        drawCharts({
-            canvasControlId: 'angle_chartControl',
-            canvasNormalId: 'angle_chartNormal',
-            data: angleResult.analysisNums,
-            mean: angleResult.mean,
-            std: angleResult.std,
-            usl: angle_usl,
-            lsl: angle_lsl,
-            spc: angleResult.spc,
-            paramName: 'angle',
-            dataType: dataType
-        });
-        updateStats('angle', angleResult.mean, angleResult.std, angleResult.spc, angleResult.analysisNums);
-    } else {
-        alert(currentLang === 'zh' ? '角度数据计算失败，请检查数据是否有效' : 'Angle calculation failed, check data');
-    }
+        drawCharts({ canvasControlId: 'angle_chartControl', canvasNormalId: 'angle_chartNormal', data: angleResult.analysisNums, mean: angleResult.mean, std: angleResult.std, usl: angle_usl, lsl: angle_lsl, spc: angleResult.spc, paramName: 'angle', dataType: dataType });
+        updateStats('angle', angleResult.mean, angleResult.std, angleResult.spc, angleResult.analysisNums, angleResult.median, angleResult.range);
+    } else alert(currentLang === 'zh' ? '角度数据计算失败，请检查数据是否有效' : 'Angle calculation failed, check data');
 }
 
-// 初始化
 window.onload = function() {
     document.getElementById('torque_tableBox').classList.remove('folded');
     document.getElementById('angle_tableBox').classList.remove('folded');
