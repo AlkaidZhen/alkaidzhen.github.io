@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-<title>拧紧结果分析 (Version 1.08)</title>
+<title>拧紧结果分析 (Version 1.09)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <style>
     *{box-sizing: border-box; font-family: "Microsoft YaHei", Arial, sans-serif; margin:0; padding:0;}
@@ -248,7 +248,7 @@
 <div class="main-box">
     <!-- 左侧输入面板 -->
     <div class="left-panel">
-        <div class="title" data-i18n="appTitle">拧紧分析 (Version 1.08)</div>
+        <div class="title" data-i18n="appTitle">拧紧分析 (Version 1.09)</div>
         <div class="sub-title" data-i18n="appSubtitle">扭矩+角度 | SPC 8大判异 | JB检验 | CPK全分组</div>
 
         <!-- 计算类型选择 -->
@@ -443,7 +443,7 @@ let currentLang = 'zh'; // 默认中文
 // ---------- 语言包 ----------
 const i18n = {
     zh: {
-        appTitle: '拧紧分析 (Version 1.08)',
+        appTitle: '拧紧分析 (Version 1.09)',
         appSubtitle: '扭矩+角度 | SPC 8大判异 | JB检验 | CPK全分组',
         calcTypeLabel: '计算类型',
         calcCPK: 'CPK (量产稳定过程)',
@@ -1386,62 +1386,122 @@ function updateCards(param, res, type) {
 }
 
 function calculateAll() {
+    // ========== 清空上次计算结果 ==========
+    // 清空结果卡片内容
+    document.getElementById('torque_distContent').innerHTML = '';
+    document.getElementById('torque_spcContent').innerHTML = '';
+    document.getElementById('torque_resultContent').innerHTML = '';
+    document.getElementById('angle_distContent').innerHTML = '';
+    document.getElementById('angle_spcContent').innerHTML = '';
+    document.getElementById('angle_resultContent').innerHTML = '';
+    
+    // 清空统计数值为 '--'
+    const torqueStats = ['mean', 'ucl', 'lcl', 'p2s', 'm2s', 'p1s', 'm1s', 'std', 'median', 'range', 'max', 'min'];
+    const angleStats = ['mean', 'ucl', 'lcl', 'p2s', 'm2s', 'p1s', 'm1s', 'std', 'median', 'range', 'max', 'min'];
+    torqueStats.forEach(stat => {
+        const el = document.getElementById(`torque_${stat}`);
+        if (el) el.innerText = '--';
+    });
+    angleStats.forEach(stat => {
+        const el = document.getElementById(`angle_${stat}`);
+        if (el) el.innerText = '--';
+    });
+    
+    // 清空数据表格显示为“暂无数据”
+    renderTable('torque_dataTable', [], []);
+    renderTable('angle_dataTable', [], []);
+    // 隐藏分组表格区域
+    const torqueGroupSec = document.getElementById('torque_groupSection');
+    if (torqueGroupSec) torqueGroupSec.style.display = 'none';
+    const angleGroupSec = document.getElementById('angle_groupSection');
+    if (angleGroupSec) angleGroupSec.style.display = 'none';
+    
+    // 清空控制图和直方图（销毁图表对象）
+    if (torqueChartControl) {
+        torqueChartControl.destroy();
+        torqueChartControl = null;
+    }
+    if (torqueChartNormal) {
+        torqueChartNormal.destroy();
+        torqueChartNormal = null;
+    }
+    if (angleChartControl) {
+        angleChartControl.destroy();
+        angleChartControl = null;
+    }
+    if (angleChartNormal) {
+        angleChartNormal.destroy();
+        angleChartNormal = null;
+    }
+    // 清空Canvas（可选，Chart.js销毁后Canvas为空）
+    
+    // 重置全局结果变量
+    torqueResult = null;
+    angleResult = null;
+    
+    // ========== 以下为原有计算逻辑（独立计算扭矩和角度） ==========
     const calcType = document.getElementById('calcType').value;
-    let missing = [];
 
+    // 扭矩独立计算
     const torque_usl = parseFloat(document.getElementById('torque_usl').value);
     const torque_lsl = parseFloat(document.getElementById('torque_lsl').value);
     const torque_target = document.getElementById('torque_target').value.trim();
     const torque_targetNum = torque_target === '' ? NaN : parseFloat(torque_target);
     const torque_data = document.getElementById('torque_data').value.trim();
 
-    if (isNaN(torque_usl) || isNaN(torque_lsl) || torque_usl <= torque_lsl) missing.push(currentLang === 'zh' ? '扭矩公差无效' : 'Invalid torque tolerance');
-    if (!torque_data) missing.push(currentLang === 'zh' ? '扭矩数据为空' : 'Torque data empty');
+    if (!isNaN(torque_usl) && !isNaN(torque_lsl) && torque_usl > torque_lsl && torque_data) {
+        torqueResult = analyzeParameter(torque_data, torque_usl, torque_lsl, torque_targetNum, calcType);
+        if (torqueResult) {
+            const rawAbnormal = torqueResult.useGrouped ? [] : torqueResult.spc.abnormalIndexList;
+            renderTable('torque_dataTable', torqueResult.rawNums, rawAbnormal);
+            const groupSection = document.getElementById('torque_groupSection');
+            if (torqueResult.groupedData) {
+                groupSection.style.display = 'block';
+                renderGroupTable('torque_groupTable', torqueResult.groupedData, torqueResult.spc.abnormalIndexList);
+            } else {
+                groupSection.style.display = 'none';
+            }
+            updateCards('torque', torqueResult, calcType);
+            const dataType = torqueResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
+            drawCharts({ canvasControlId: 'torque_chartControl', canvasNormalId: 'torque_chartNormal', data: torqueResult.analysisNums, mean: torqueResult.mean, std: torqueResult.std, usl: torque_usl, lsl: torque_lsl, spc: torqueResult.spc, paramName: 'torque', dataType: dataType });
+            updateStats('torque', torqueResult.mean, torqueResult.std, torqueResult.spc, torqueResult.analysisNums, torqueResult.median, torqueResult.range);
+        } else {
+            alert(currentLang === 'zh' ? '扭矩数据计算失败，请检查数据是否有效' : 'Torque calculation failed, check data');
+        }
+    } else {
+        console.warn('扭矩参数无效或数据为空，跳过扭矩计算');
+    }
 
+    // 角度独立计算
     const angle_usl = parseFloat(document.getElementById('angle_usl').value);
     const angle_lsl = parseFloat(document.getElementById('angle_lsl').value);
     const angle_target = document.getElementById('angle_target').value.trim();
     const angle_targetNum = angle_target === '' ? NaN : parseFloat(angle_target);
     const angle_data = document.getElementById('angle_data').value.trim();
 
-    if (isNaN(angle_usl) || isNaN(angle_lsl) || angle_usl <= angle_lsl) missing.push(currentLang === 'zh' ? '角度公差无效' : 'Invalid angle tolerance');
-    if (!angle_data) missing.push(currentLang === 'zh' ? '角度数据为空' : 'Angle data empty');
-
-    if (missing.length > 0) { alert((currentLang === 'zh' ? '以下输入有误：\n' : 'Input errors:\n') + missing.join('\n')); return; }
-
-    // 扭矩
-    torqueResult = analyzeParameter(torque_data, torque_usl, torque_lsl, torque_targetNum, calcType);
-    if (torqueResult) {
-        const rawAbnormal = torqueResult.useGrouped ? [] : torqueResult.spc.abnormalIndexList;
-        renderTable('torque_dataTable', torqueResult.rawNums, rawAbnormal);
-        const groupSection = document.getElementById('torque_groupSection');
-        if (torqueResult.groupedData) {
-            groupSection.style.display = 'block';
-            renderGroupTable('torque_groupTable', torqueResult.groupedData, torqueResult.spc.abnormalIndexList);
-        } else groupSection.style.display = 'none';
-        updateCards('torque', torqueResult, calcType);
-        const dataType = torqueResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
-        drawCharts({ canvasControlId: 'torque_chartControl', canvasNormalId: 'torque_chartNormal', data: torqueResult.analysisNums, mean: torqueResult.mean, std: torqueResult.std, usl: torque_usl, lsl: torque_lsl, spc: torqueResult.spc, paramName: 'torque', dataType: dataType });
-        updateStats('torque', torqueResult.mean, torqueResult.std, torqueResult.spc, torqueResult.analysisNums, torqueResult.median, torqueResult.range);
-    } else alert(currentLang === 'zh' ? '扭矩数据计算失败，请检查数据是否有效' : 'Torque calculation failed, check data');
-
-    // 角度
-    angleResult = analyzeParameter(angle_data, angle_usl, angle_lsl, angle_targetNum, calcType);
-    if (angleResult) {
-        const rawAbnormal = angleResult.useGrouped ? [] : angleResult.spc.abnormalIndexList;
-        renderTable('angle_dataTable', angleResult.rawNums, rawAbnormal);
-        const groupSection = document.getElementById('angle_groupSection');
-        if (angleResult.groupedData) {
-            groupSection.style.display = 'block';
-            renderGroupTable('angle_groupTable', angleResult.groupedData, angleResult.spc.abnormalIndexList);
-        } else groupSection.style.display = 'none';
-        updateCards('angle', angleResult, calcType);
-        const dataType = angleResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
-        drawCharts({ canvasControlId: 'angle_chartControl', canvasNormalId: 'angle_chartNormal', data: angleResult.analysisNums, mean: angleResult.mean, std: angleResult.std, usl: angle_usl, lsl: angle_lsl, spc: angleResult.spc, paramName: 'angle', dataType: dataType });
-        updateStats('angle', angleResult.mean, angleResult.std, angleResult.spc, angleResult.analysisNums, angleResult.median, angleResult.range);
-    } else alert(currentLang === 'zh' ? '角度数据计算失败，请检查数据是否有效' : 'Angle calculation failed, check data');
+    if (!isNaN(angle_usl) && !isNaN(angle_lsl) && angle_usl > angle_lsl && angle_data) {
+        angleResult = analyzeParameter(angle_data, angle_usl, angle_lsl, angle_targetNum, calcType);
+        if (angleResult) {
+            const rawAbnormal = angleResult.useGrouped ? [] : angleResult.spc.abnormalIndexList;
+            renderTable('angle_dataTable', angleResult.rawNums, rawAbnormal);
+            const groupSection = document.getElementById('angle_groupSection');
+            if (angleResult.groupedData) {
+                groupSection.style.display = 'block';
+                renderGroupTable('angle_groupTable', angleResult.groupedData, angleResult.spc.abnormalIndexList);
+            } else {
+                groupSection.style.display = 'none';
+            }
+            updateCards('angle', angleResult, calcType);
+            const dataType = angleResult.useGrouped ? i18n[currentLang].grouped : i18n[currentLang].raw;
+            drawCharts({ canvasControlId: 'angle_chartControl', canvasNormalId: 'angle_chartNormal', data: angleResult.analysisNums, mean: angleResult.mean, std: angleResult.std, usl: angle_usl, lsl: angle_lsl, spc: angleResult.spc, paramName: 'angle', dataType: dataType });
+            updateStats('angle', angleResult.mean, angleResult.std, angleResult.spc, angleResult.analysisNums, angleResult.median, angleResult.range);
+        } else {
+            alert(currentLang === 'zh' ? '角度数据计算失败，请检查数据是否有效' : 'Angle calculation failed, check data');
+        }
+    } else {
+        console.warn('角度参数无效或数据为空，跳过角度计算');
+    }
 }
-
 window.onload = function() {
     document.getElementById('torque_tableBox').classList.remove('folded');
     document.getElementById('angle_tableBox').classList.remove('folded');
